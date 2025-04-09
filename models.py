@@ -39,6 +39,17 @@ class Usuario(UserMixin, db.Model):
     )
 
 
+class ConviteGrupo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email_convidado = db.Column(db.String(120), nullable=False)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    status = db.Column(db.String(20), default="pendente")  # pendente, aceito, expirado, etc.
+    data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+
+    grupo = db.relationship("Grupo", backref="convites")    
+
+
 class PedidoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
@@ -70,3 +81,5 @@ class Tarefa(db.Model):
     imagem = db.Column(db.String(200), nullable=True)
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'))
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    pontos = db.Column(db.Integer, default=10)
+    ativa = db.Column(db.Boolean, default=True)

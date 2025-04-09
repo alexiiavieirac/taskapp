@@ -236,7 +236,9 @@
     <div class="menu-opcoes">
         <button class="menu-btn">☰ Menu</button>
         <div class="menu-dropdown">
-            <a href="{{ url_for('entrar_grupo', grupo_id=grupo_id) }}">👥 Grupo</a>
+            <nav>
+                <a href="{{ url_for('grupo') }}">👥 Grupo</a>
+              </nav>
             <a href="{{ url_for('conexoes') }}">🔄 Conexões</a>
             <a href="{{ url_for('ver_pedidos') }}">📩 Pedidos</a>
             <a href="{{ url_for('ranking') }}">🏆 Ranking</a>
@@ -255,7 +257,11 @@
         {% for tarefa in tarefas %}
             <div class="tarefa">
                 <div class="tarefa-descricao {% if tarefa.concluida %}tarefa-concluida{% endif %}">
-                    {{ tarefa.descricao }}
+                    {% if tarefa.concluida %}
+                        <s>{{ tarefa.descricao }}</s>
+                    {% else %}
+                        {{ tarefa.descricao }}
+                    {% endif %}
                 </div>
 
                 {% if tarefa.imagem %}

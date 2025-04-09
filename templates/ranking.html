@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,13 +62,37 @@
     <div class="ranking-container">
         <h2>🏆 Ranking Semanal</h2>
         <ol>
-            {% for usuario, pontos in ranking %}
-                <li>
-                    <span>{{ usuario.nome }}</span>
-                    <span>{{ pontos }} tarefas concluídas</span>
+            {% for nome, tarefas_concluidas in ranking %}
+                <li class="px-4 py-2 rounded-lg shadow-sm flex justify-between items-center">
+                    <span>
+                        {% if loop.first %}
+                            🥇
+                        {% elif loop.index == 2 %}
+                            🥈
+                        {% elif loop.index == 3 %}
+                            🥉
+                        {% endif %}
+                        {{ loop.index }}º - {{ nome }}
+                    </span>
+                    <span class="text-green-600 font-bold">{{ tarefas_concluidas }} tarefas concluídas</span>
                 </li>
             {% endfor %}
         </ol>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('index') }}" style="
+                display: inline-block;
+                padding: 0.75rem 1.5rem;
+                background-color: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                transition: background-color 0.3s ease;
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                ⬅️ Voltar para o início
+            </a>
+        </div>
     </div>
 </body>
 </html>

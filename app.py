@@ -6,10 +6,20 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Conexao, PedidoGrupo, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
 from datetime import datetime
+from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeTimedSerializer
+from sqlalchemy import func
 
 # Configurações do Flask
 app = Flask(__name__)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'lekacvieira@gmail.com'
+app.config['MAIL_PASSWORD'] = 'hwhg tixs wjvz wzfb'
+app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
 
 app.config['SECRET_KEY'] = 'chave-super-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -19,11 +29,36 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Inicializa db e migrate
 db.init_app(app)
+mail = Mail(app)
 migrate = Migrate(app, db)
 
 # Inicializa o LoginManager
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+# E-MAIL
+@app.route("/enviar-convite", methods=["POST"])
+@login_required
+def enviar_convite():
+    email_destino = request.form["email"]
+    usuario_convidado = Usuario.query.filter_by(email=email_destino).first()
+    
+    if not usuario_convidado:
+        flash("❌ Usuário não encontrado.", "danger")
+        return redirect(url_for("grupo"))
+    
+    token = s.dumps({"email": email_destino, "grupo_id": current_user.grupo_id})
+
+    link_aceite = url_for("aceitar_convite", token=token, _external=True)
+
+    msg = Message("Convite para entrar no grupo", recipients=[email_destino])
+    msg.body = f"Você foi convidado para entrar no grupo '{current_user.grupo.nome}'. Clique no link abaixo para aceitar:\n{link_aceite}"
+    mail.send(msg)
+
+    flash("✅ Convite enviado com sucesso!", "success")
+    return redirect(url_for("grupo"))
 
 # LOGIN, REGISTRO E LOGOUT
 
@@ -102,6 +137,8 @@ def logout():
 @app.route('/', methods=["GET", "POST"])
 @login_required
 def index():
+    grupo_id = current_user.grupo_id
+    
     if request.method == "POST":
         descricao = request.form["descricao"]
         imagem = request.files.get("imagem")
@@ -111,27 +148,32 @@ def index():
             nome_imagem = secure_filename(imagem.filename)
             imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
 
-        grupo_id = session.get('grupo_id')
-
-        if not grupo_id:
-            flash("Você precisa estar logado para criar uma tarefa.")
-            return redirect("/login")
-
-        nova_tarefa = Tarefa(descricao=descricao, imagem=nome_imagem, grupo_id=grupo_id)
+        nova_tarefa = Tarefa(
+            descricao=descricao,
+            imagem=nome_imagem,
+            grupo_id=grupo_id
+        )
 
         db.session.add(nova_tarefa)
         db.session.commit()
         return redirect("/")
-
-    grupo_id = session.get('grupo_id')
-
-    if not grupo_id:
-        flash("Login necessário.")
-        return redirect("/login")
-
-    tarefas = Tarefa.query.filter_by(grupo_id=grupo_id).order_by(Tarefa.data_criacao).all()
     
-    return render_template("index.html", tarefas=tarefas, grupo_id=grupo_id)
+    tarefas = Tarefa.query.filter_by(grupo_id=grupo_id, ativa=True).order_by(Tarefa.data_criacao).all()
+    grupo = Grupo.query.get_or_404(grupo_id)
+    membros = Usuario.query.filter_by(grupo_id=grupo_id).all()
+
+    ranking = db.session.query(
+        Usuario.nome,
+        func.count(Tarefa.id).label('tarefas_concluidas')
+    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+    .filter(
+        Usuario.grupo_id == grupo_id,
+        Tarefa.concluida == True
+    ).group_by(Usuario.id, Usuario.nome) \
+    .order_by(func.count(Tarefa.id).desc()) \
+    .all()
+    
+    return render_template("index.html", tarefas=tarefas, grupo=grupo, membros=membros, grupo_id=grupo_id)
 
 # ENVIO DE IMAGENS
 
@@ -163,29 +205,42 @@ def enviar_imagem(id):
 @login_required
 def grupo():
     grupo = current_user.grupo
+
+    # Lista de membros do grupo atual
     membros = Usuario.query.filter_by(grupo_id=grupo.id).all()
-    
+
+    # Consulta para obter o ranking por número de tarefas concluídas
     ranking = db.session.query(
-        Usuario,
+        Usuario.nome,
         db.func.count(Tarefa.id).label('tarefas_concluidas')
     ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
      .filter(
          Usuario.grupo_id == grupo.id,
          Tarefa.concluida == True
-     ).group_by(Usuario.id).order_by(db.desc('tarefas_concluidas')).all()
-    
-    return render_template('grupo.html', grupo=grupo, membros=membros, ranking=ranking)
+     ).group_by(Usuario.id, Usuario.nome) \
+     .order_by(db.desc('tarefas_concluidas')) \
+     .all()
+
+    return render_template("grupo.html", grupo=grupo, membros=membros, ranking=ranking)
 
 # Rota de Ranking - Mostrar o ranking de tarefas concluídas por grupo, ordenado do maior para o menor número de tarefas concluídas.
 @app.route("/ranking")
 def ranking():
+    grupo_id = current_user.grupo_id
+
     ranking = db.session.query(
-        Usuario,
+        Usuario.nome,
         db.func.count(Tarefa.id).label('tarefas_concluidas')
     ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
-     .filter(Tarefa.concluida == True) \
-     .group_by(Usuario.id).order_by(db.desc('tarefas_concluidas')).all()
-    return render_template('ranking.html', ranking=ranking)
+    .filter(
+        Usuario.grupo_id == grupo_id,
+        Tarefa.concluida == True,
+        Tarefa.ativa == True
+    ).group_by(Usuario.id, Usuario.nome) \
+    .order_by(db.desc('tarefas_concluidas')) \
+    .all()
+
+    return render_template("ranking.html", ranking=ranking)
 
 # Rota de Adicionar-membro - Permitir que o usuário adicione um membro ao seu grupo informando o e-mail do usuário.
 @app.route("/adicionar-membro", methods=["POST"])
@@ -200,6 +255,31 @@ def adicionar_membro():
     else:
         flash("❌ Usuário não encontrado.", "danger")
     return redirect(url_for("dashboard"))
+
+@app.route("/aceitar-convite/<token>")
+def aceitar_convite(token):
+    try:
+        data = s.loads(token, max_age=3600)  # Token expira em 1 hora
+        email = data["email"]
+        grupo_id = data["grupo_id"]
+
+        usuario = Usuario.query.filter_by(email=email).first()
+        grupo = Grupo.query.get(grupo_id)
+
+        if not usuario or not grupo:
+            flash("❌ Usuário ou grupo não encontrados.", "danger")
+            return redirect(url_for("login"))
+
+        usuario.grupo_id = grupo.id
+        db.session.commit()
+
+        flash(f"🎉 Você agora faz parte do grupo '{grupo.nome}'!", "success")
+        return redirect(url_for("login"))
+
+    except Exception as e:
+        print(e)
+        flash("❌ Link inválido ou expirado.", "danger")
+        return redirect(url_for("login"))
 
 # Rota de Conexões - Mostra tela com: nome do usuário que segue, pessoas que seguem o usuário, lista de usuários para seguir.
 @app.route("/conexoes")
@@ -247,6 +327,17 @@ def aceitar_pedido(pedido_id):
         flash("Pedido aceito!")
     return redirect(url_for("ver_pedidos"))
 
+@app.route("/rejeitar_pedido/<int:pedido_id>")
+@login_required
+def rejeitar_pedido(pedido_id):
+    pedido = SolicitacaoGrupo.query.get(pedido_id)
+    
+    if pedido and pedido.grupo_id == current_user.grupo_id:
+        db.session.delete(pedido)
+        db.session.commit()
+    
+    return redirect(url_for("pedidos"))
+
 # Rota de Rejeitar Pedido - Listar todos os pedidos de entrada pendentes no grupo do usuário logado.
 @app.route("/pedidos")
 @login_required
@@ -260,24 +351,38 @@ def ver_pedidos():
 @app.route("/concluir/<int:id>")
 def concluir(id):
     tarefa = Tarefa.query.get_or_404(id)
-    tarefa.concluida = not tarefa.concluida
+
+    # Impede qualquer tentativa de desmarcar a tarefa, mesmo pelo próprio usuário
+    if tarefa.concluida:
+        flash("Tarefa já foi concluída e não pode ser desmarcada.")
+        return redirect("/")
+
+    # Impede que o usuário conclua uma tarefa já atribuída a outro usuário
+    if tarefa.usuario_id and tarefa.usuario_id != current_user.id:
+        flash("Essa tarefa já está atribuída a outro usuário.")
+        return redirect("/")
+
+    # Marca como concluída e associa o usuário atual
+    tarefa.concluida = True
+    tarefa.usuario_id = current_user.id
+
     db.session.commit()
+    flash("Tarefa concluída com sucesso!")
     return redirect("/")
 
 @app.route("/deletar/<int:id>")
 def deletar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
-    if tarefa.imagem:
-        caminho = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
-        try:
-            if os.path.exists(caminho):
-                os.remove(caminho)
-        except Exception as e:
-            print(f"Erro ao deletar imagem: {e}")
+    # Verifica se o usuário pertence ao mesmo grupo
+    if tarefa.grupo_id != current_user.grupo_id:
+        flash("Você não pode excluir esta tarefa.")
+        return redirect("/")
 
-    db.session.delete(tarefa)
+    # Marca como inativa, não deleta
+    tarefa.ativa = False
     db.session.commit()
+    flash("Tarefa excluída com sucesso.")
     return redirect("/")
 
 @app.route('/editar/<int:id>', methods=["GET", "POST"])
