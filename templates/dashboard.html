@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #ecf0f1;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .container {
+            padding: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        .member-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .member-list li:last-child {
+            border-bottom: none;
+        }
+
+        input, button {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Bem-vindo, {{ current_user.nome }} 👋</h1>
+    </header>
+
+    <div class="container">
+
+        <!-- Grupo -->
+        <div class="card">
+            <h3>👥 Grupo: {{ grupo.nome }}</h3>
+            <p>Membros do grupo:</p>
+            <ul class="member-list">
+                {% for membro in membros %}
+                    <li>{{ membro.nome }} ({{ membro.email }})</li>
+                {% endfor %}
+            </ul>
+
+            <form action="{{ url_for('adicionar_membro') }}" method="POST">
+                <input type="email" name="email" placeholder="Email do novo membro" required>
+                <button type="submit">Adicionar ao grupo</button>
+            </form>
+        </div>
+
+        <!-- Ranking real -->
+        <div class="card">
+            <h3>🏆 Ranking do Grupo</h3>
+            <ul class="member-list">
+                {% for usuario, total in ranking %}
+                    <li>{{ usuario.nome }} — {{ total }} tarefas concluídas</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </div>
+
+</body>
+</html>

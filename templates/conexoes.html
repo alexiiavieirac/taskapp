@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>Usuários disponíveis:</h2>
+    <ul>
+        {% for usuario in usuarios %}
+            <li>
+                {{ usuario.nome }} - 
+                <a href="{{ url_for('seguir', usuario_id=usuario.id) }}">Seguir</a>
+                <a href="{{ url_for('entrar_grupo', grupo_id=usuario.grupo_id) }}">Pedir para entrar no grupo</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Você está seguindo:</h2>
+    <ul>
+        {% for c in seguindo %}
+            <li>{{ Usuario.query.get(c.seguido_id).nome }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Seus seguidores:</h2>
+    <ul>
+        {% for c in seguidores %}
+            <li>{{ Usuario.query.get(c.seguidor_id).nome }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
