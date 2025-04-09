@@ -6,206 +6,214 @@
     <title>Household Tasks</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
-            margin: 0;
-            padding: 0;
-        }
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #ecf0f1;
+    }
 
-        header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+    header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        header h2 {
-            margin: 0;
-        }
+        /* Estilização geral do header */
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 30px;
+        background-color: #f2f2f2;
+        border-bottom: 1px solid #ccc;
+    }
 
-        .navbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+    /* Agrupamento nome + botão */
+    .navbar-user {
+        display: flex;
+        align-items: center;
+        gap: 12px; /* Espaço entre nome e botão */
+    }
 
-        .navbar-actions span {
-            font-size: 16px;
-        }
+    /* Texto de boas-vindas */
+    .user-welcome {
+        font-weight: 490;
+    }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+    /* Botão sair */
+    .logout-btn {
+        padding: 9px 12px;
+        background-color: #e74c3c;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+    }
 
-        .user-info span {
-            line-height: 1;
-            font-size: 15px;
-            margin: 0;
-            padding: 0;
-        }
+    .logout-btn:hover {
+        background-color: #c0392b;
+    }
 
-        .user-info form {
-            margin: 0;
-        }
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
 
-        .logout-btn {
-            background-color: #e74c3c;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+    input[type="text"], input[type="file"], button {
+        margin-top: 10px;
+        margin-right: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
 
-        .logout-btn {
-            background-color: #e74c3c;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 36px;
-        }
+    .tarefa {
+        background-color: #f9f9f9;
+        margin-top: 20px;
+        padding: 12px;
+        border-radius: 8px;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
+    .tarefa-links {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
+    .tarefa-links a {
+        padding: 6px 12px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid transparent;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
 
-        form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
+    /* Botão Concluir */
+    .tarefa-links a:nth-child(1) {
+        background-color: #d1f2eb;
+        color: #117a65;
+        border-color: #a2ded0;
+    }
 
-        input[type="text"], input[type="file"] {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            width: 100%;
-            max-width: 300px;
-        }
+    .tarefa-links a:nth-child(1):hover {
+        background-color: #a2ded0;
+        color: #0e6655;
+    }
 
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+    /* Botão Editar */
+    .tarefa-links a:nth-child(2) {
+        background-color: #d6eaf8;
+        color: #21618c;
+        border-color: #aed6f1;
+    }
 
-        button:hover {
-            background-color: #45a049;
-        }
+    .tarefa-links a:nth-child(2):hover {
+        background-color: #aed6f1;
+        color: #154360;
+    }
 
-        .tarefa {
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+    /* Botão Excluir */
+    .tarefa-links a:nth-child(3) {
+        background-color: #f9d6d5;
+        color: #922b21;
+        border-color: #f5b7b1;
+    }
 
-        .tarefa-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .tarefa-links a:nth-child(3):hover {
+        background-color: #f5b7b1;
+        color: #7b241c;
+    }
 
-        .tarefa-descricao {
-            font-size: 18px;
-        }
+    img {
+        max-width: 100%;
+        margin-top: 10px;
+        border-radius: 4px;
+    }
 
-        .tarefa-concluida {
-            text-decoration: line-through;
-            color: #777;
-        }
+    .menu-opcoes {
+        position: relative;
+        display: inline-block;
+        margin: 10px;
+    }
 
-        .tarefa img {
-            margin-top: 10px;
-            width: 180px;
-            border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-        }
+    .menu-btn {
+        background-color: #2c3e50;
+        color: white;
+        padding: 10px 16px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
 
-        .tarefa-links {
-            margin-top: 10px;
-            font-size: 14px;
-        }
+    .menu-btn:hover {
+        background-color: #34495e;
+    }
 
-        .tarefa-links a {
-            color: #007BFF;
-            text-decoration: none;
-            margin-right: 10px;
-        }
+    .menu-dropdown {
+        display: none;
+        position: absolute;
+        background-color: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        min-width: 180px;
+        border-radius: 8px;
+        z-index: 1;
+        top: 100%;
+        left: 0;
+        padding: 8px 0;
+    }
 
-        .tarefa-links a:hover {
-            text-decoration: underline;
-        }
+    .menu-dropdown a,
+    .logout-link {
+        color: #2c3e50;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        background: none;
+        border: none;
+        text-align: left;
+        width: 100%;
+        cursor: pointer;
+        font-size: 15px;
+    }
 
-        .upload-imagem-form input[type="file"] {
-            font-size: 12px;
-        }
+    .menu-dropdown a:hover,
+    .logout-link:hover {
+        background-color: #f1f1f1;
+    }
 
-        .input-imagem-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .input-imagem-wrapper button {
-            background-color: #3498db;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            transition: background 0.3s;
-            font-size: 14px;
-        }
-
-        .input-imagem-wrapper button:hover {
-            background-color: #2980b9;
-        }
-
-        .input-imagem-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            height: 100%;
-            width: 100%;
-        }
+    .menu-opcoes:hover .menu-dropdown {
+        display: block;
+    }
     </style>
+
+    <!-- Script para abrir/fechar o menu -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById("menuDropdown");
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.menu-button')) {
+                const dropdowns = document.getElementsByClassName("dropdown");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].style.display = "none";
+                }
+            }
+        }
+    </script>
 </head>
 <body>
 
@@ -214,8 +222,8 @@
         <h2>Household Tasks</h2>
         <div class="navbar-actions">
             {% if current_user.is_authenticated %}
-                <div class="user-info">
-                    <span>Bem-vindo(a), {{ current_user.nome }} 👋</span>
+                <div class="navbar-user">
+                    <span class="user-welcome">Bem-vindo(a), {{ current_user.nome }} 👋</span>
                     <form action="{{ url_for('logout') }}" method="GET">
                         <button class="logout-btn" type="submit">Sair</button>
                     </form>
@@ -223,6 +231,17 @@
             {% endif %}
         </div>
     </header>
+
+    <!-- Menu de Opções -->
+    <div class="menu-opcoes">
+        <button class="menu-btn">☰ Menu</button>
+        <div class="menu-dropdown">
+            <a href="{{ url_for('entrar_grupo', grupo_id=grupo_id) }}">👥 Grupo</a>
+            <a href="{{ url_for('conexoes') }}">🔄 Conexões</a>
+            <a href="{{ url_for('ver_pedidos') }}">📩 Pedidos</a>
+            <a href="{{ url_for('ranking') }}">🏆 Ranking</a>
+        </div>
+    </div>
 
     <div class="container">
         <h1>Minhas Tarefas</h1>
@@ -235,17 +254,8 @@
 
         {% for tarefa in tarefas %}
             <div class="tarefa">
-                <div class="tarefa-header">
-                    <div class="tarefa-descricao {% if tarefa.concluida %}tarefa-concluida{% endif %}">
-                        {{ tarefa.descricao }}
-                    </div>
-
-                    <form class="upload-imagem-form" action="{{ url_for('enviar_imagem', id=tarefa.id) }}" method="POST" enctype="multipart/form-data">
-                        <div class="input-imagem-wrapper">
-                            <button type="button" onclick="this.nextElementSibling.click()">📸 Enviar imagem</button>
-                            <input type="file" name="imagem" onchange="this.form.submit()">
-                        </div>
-                    </form>
+                <div class="tarefa-descricao {% if tarefa.concluida %}tarefa-concluida{% endif %}">
+                    {{ tarefa.descricao }}
                 </div>
 
                 {% if tarefa.imagem %}
@@ -253,11 +263,11 @@
                 {% endif %}
 
                 <div class="tarefa-links">
-                    - <a href="/concluir/{{ tarefa.id }}">
+                    <a href="/concluir/{{ tarefa.id }}">
                         {% if tarefa.concluida %}Desmarcar{% else %}Concluir{% endif %}
                     </a>
-                    | <a href="/editar/{{ tarefa.id }}">Editar</a>
-                    | <a href="/deletar/{{ tarefa.id }}">Excluir</a>
+                    <a href="/editar/{{ tarefa.id }}">Editar</a>
+                    <a href="/deletar/{{ tarefa.id }}">Excluir</a>
                 </div>
             </div>
         {% endfor %}

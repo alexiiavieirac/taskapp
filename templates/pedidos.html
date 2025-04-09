@@ -3,17 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Pedidos de Entrada</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fb;
+            padding: 2rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #222;
+        }
+
+        .pedido {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f3f5;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .pedido span {
+            font-size: 1.1rem;
+        }
+
+        .botoes {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .botoes button {
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .aceitar {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .aceitar:hover {
+            background-color: #45a049;
+        }
+
+        .rejeitar {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .rejeitar:hover {
+            background-color: #d32f2f;
+        }
+    </style>
 </head>
 <body>
-    <h2>Pedidos de entrada no seu grupo:</h2>
-    <ul>
+    <div class="container">
+        <h2>📨 Pedidos de entrada no seu grupo:</h2>
+
         {% for pedido in pedidos %}
-            <li>
-                {{ Usuario.query.get(pedido.solicitante_id).nome }}
-                <a href="{{ url_for('aceitar_pedido', pedido_id=pedido.id) }}">Aceitar</a>
-            </li>
+        <div class="pedido">
+            <span>{{ pedido.nome }} — {{ pedido.email }}</span>
+            <div class="botoes">
+                <form action="{{ url_for('aceitar_pedido', pedido_id=pedido.id) }}" method="post">
+                    <button class="aceitar" type="submit">Aceitar</button>
+                </form>
+                <form action="{{ url_for('rejeitar_pedido', pedido_id=pedido.id) }}" method="post">
+                    <button class="rejeitar" type="submit">Rejeitar</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+            <p style="text-align: center;">Nenhum pedido pendente.</p>
         {% endfor %}
-    </ul>
+    </div>
 </body>
 </html>

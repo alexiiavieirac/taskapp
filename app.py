@@ -25,6 +25,8 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# LOGIN, REGISTRO E LOGOUT
+
 # Rota de erro para login
 @login_manager.user_loader
 def load_user(user_id):
@@ -84,38 +86,6 @@ def login():
 
     return render_template("login.html")
 
-# Rota de Dashboard
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    grupo = current_user.grupo
-
-    membros = Usuario.query.filter_by(grupo_id=grupo.id).all()
-
-    ranking = db.session.query(
-        Usuario,
-        db.func.count(Tarefa.id).label('tarefas_concluidas')
-    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
-     .filter(
-         Usuario.grupo_id == grupo.id,
-         Tarefa.concluida == True
-     ).group_by(Usuario.id).order_by(db.desc('tarefas_concluidas')).all()
-
-    return render_template("dashboard.html", grupo=grupo, membros=membros, ranking=ranking)
-
-@app.route("/adicionar-membro", methods=["POST"])
-@login_required
-def adicionar_membro():
-    email = request.form["email"]
-    membro = Usuario.query.filter_by(email=email).first()
-    if membro:
-        membro.grupo = current_user.grupo
-        db.session.commit()
-        flash("✅ Membro adicionado ao grupo com sucesso!", "success")
-    else:
-        flash("❌ Usuário não encontrado.", "danger")
-    return redirect(url_for("dashboard"))
-
 # Rota de Logout
 @app.route("/logout")
 @login_required
@@ -123,6 +93,10 @@ def logout():
     logout_user()
     flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('login'))
+
+
+
+# PARTE DA TAREFA E DAS IMAGENS
 
 # Rota de Entrar no Sistema
 @app.route('/', methods=["GET", "POST"])
@@ -156,17 +130,87 @@ def index():
         return redirect("/login")
 
     tarefas = Tarefa.query.filter_by(grupo_id=grupo_id).order_by(Tarefa.data_criacao).all()
-    return render_template("index.html", tarefas=tarefas)
+    
+    return render_template("index.html", tarefas=tarefas, grupo_id=grupo_id)
 
+# ENVIO DE IMAGENS
+
+@app.route("/imagem/<int:id>", methods=["POST"])
+def enviar_imagem(id):
+    tarefa = Tarefa.query.get_or_404(id)
+    imagem = request.files.get("imagem")
+
+    if imagem and imagem.filename != "":
+        # Se já existe uma imagem antiga, deleta
+        if tarefa.imagem:
+            caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
+            if os.path.exists(caminho_antigo):
+                os.remove(caminho_antigo)
+
+        nome_imagem = secure_filename(imagem.filename)
+        imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
+        tarefa.imagem = nome_imagem
+        db.session.commit()
+
+    return redirect("/")
+
+
+
+# GRUPO, CONEXÕES E RANKING
+
+# Rota de Grupo - Mostrar os dados do grupo atual do usuário logado, incluindo: nome do grupo, lista de membros e ranking. 
+@app.route("/grupo")
+@login_required
+def grupo():
+    grupo = current_user.grupo
+    membros = Usuario.query.filter_by(grupo_id=grupo.id).all()
+    
+    ranking = db.session.query(
+        Usuario,
+        db.func.count(Tarefa.id).label('tarefas_concluidas')
+    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+     .filter(
+         Usuario.grupo_id == grupo.id,
+         Tarefa.concluida == True
+     ).group_by(Usuario.id).order_by(db.desc('tarefas_concluidas')).all()
+    
+    return render_template('grupo.html', grupo=grupo, membros=membros, ranking=ranking)
+
+# Rota de Ranking - Mostrar o ranking de tarefas concluídas por grupo, ordenado do maior para o menor número de tarefas concluídas.
+@app.route("/ranking")
+def ranking():
+    ranking = db.session.query(
+        Usuario,
+        db.func.count(Tarefa.id).label('tarefas_concluidas')
+    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+     .filter(Tarefa.concluida == True) \
+     .group_by(Usuario.id).order_by(db.desc('tarefas_concluidas')).all()
+    return render_template('ranking.html', ranking=ranking)
+
+# Rota de Adicionar-membro - Permitir que o usuário adicione um membro ao seu grupo informando o e-mail do usuário.
+@app.route("/adicionar-membro", methods=["POST"])
+@login_required
+def adicionar_membro():
+    email = request.form["email"]
+    membro = Usuario.query.filter_by(email=email).first()
+    if membro:
+        membro.grupo = current_user.grupo
+        db.session.commit()
+        flash("✅ Membro adicionado ao grupo com sucesso!", "success")
+    else:
+        flash("❌ Usuário não encontrado.", "danger")
+    return redirect(url_for("dashboard"))
+
+# Rota de Conexões - Mostra tela com: nome do usuário que segue, pessoas que seguem o usuário, lista de usuários para seguir.
 @app.route("/conexoes")
 @login_required
 def conexoes():
-    seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
-    seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
+    seguindo = current_user.seguindo.all()
+    seguidores = current_user.seguidores.all()
     usuarios = Usuario.query.filter(Usuario.id != current_user.id).all()
-    return render_template("conexoes.html", seguindo=seguindo, seguidores=seguidores, usuarios=usuarios)
+    return render_template('conexoes.html', seguindo=seguindo, seguidores=seguidores, usuarios=usuarios)
 
-
+# Rotas de Seguir - Permitir que o usuário logado siga outro usuário.
 @app.route("/seguir/<int:usuario_id>")
 @login_required
 def seguir(usuario_id):
@@ -178,6 +222,7 @@ def seguir(usuario_id):
     flash("Agora você está seguindo essa pessoa!")
     return redirect(url_for('conexoes'))
 
+# Rota de Entrar no Grupo - Enviar um pedido de entrada em um grupo específico.
 @app.route("/entrar_grupo/<int:grupo_id>")
 @login_required
 def entrar_grupo(grupo_id):
@@ -189,6 +234,7 @@ def entrar_grupo(grupo_id):
     flash("Pedido enviado com sucesso.")
     return redirect(url_for("conexoes"))    
 
+# Rota de Pedidos - Aceitar uma solicitação de entrada no grupo feita por outro usuário.
 @app.route("/aceitar_pedido/<int:pedido_id>")
 @login_required
 def aceitar_pedido(pedido_id):
@@ -201,12 +247,16 @@ def aceitar_pedido(pedido_id):
         flash("Pedido aceito!")
     return redirect(url_for("ver_pedidos"))
 
-@app.route("/ver_pedidos")
+# Rota de Rejeitar Pedido - Listar todos os pedidos de entrada pendentes no grupo do usuário logado.
+@app.route("/pedidos")
 @login_required
 def ver_pedidos():
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
-    return render_template("pedidos.html", pedidos=pedidos)
+    return render_template('pedidos.html', pedidos=pedidos)
 
+
+
+# CONCLUIR, DELETAR E EDITAR TAREFAS
 @app.route("/concluir/<int:id>")
 def concluir(id):
     tarefa = Tarefa.query.get_or_404(id)
@@ -228,25 +278,6 @@ def deletar(id):
 
     db.session.delete(tarefa)
     db.session.commit()
-    return redirect("/")
-
-@app.route("/imagem/<int:id>", methods=["POST"])
-def enviar_imagem(id):
-    tarefa = Tarefa.query.get_or_404(id)
-    imagem = request.files.get("imagem")
-
-    if imagem and imagem.filename != "":
-        # Se já existe uma imagem antiga, deleta
-        if tarefa.imagem:
-            caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
-            if os.path.exists(caminho_antigo):
-                os.remove(caminho_antigo)
-
-        nome_imagem = secure_filename(imagem.filename)
-        imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
-        tarefa.imagem = nome_imagem
-        db.session.commit()
-
     return redirect("/")
 
 @app.route('/editar/<int:id>', methods=["GET", "POST"])

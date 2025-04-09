@@ -1,34 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minhas Conexões</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f2f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 50px 15px;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 700px;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #3b3b3b;
+    }
+
+    h3 {
+      color: #555;
+      font-size: 1.2rem;
+      margin-top: 30px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      background-color: #fafafa;
+      margin-bottom: 12px;
+      padding: 15px 20px;
+      border-radius: 15px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: transform 0.2s ease;
+    }
+
+    li:hover {
+      transform: scale(1.01);
+    }
+
+    .nome {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #2c3e50;
+    }
+
+    .pontos {
+      font-size: 0.95rem;
+      background-color: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 10px;
+      border-radius: 8px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .id {
+      font-size: 0.85rem;
+      color: #888;
+    }
+  </style>
 </head>
 <body>
-    <h2>Usuários disponíveis:</h2>
+  <div class="container">
+    <h2>👥 Minhas Conexões</h2>
+
+    <h3>Quem eu sigo</h3>
     <ul>
-        {% for usuario in usuarios %}
-            <li>
-                {{ usuario.nome }} - 
-                <a href="{{ url_for('seguir', usuario_id=usuario.id) }}">Seguir</a>
-                <a href="{{ url_for('entrar_grupo', grupo_id=usuario.grupo_id) }}">Pedir para entrar no grupo</a>
-            </li>
-        {% endfor %}
+      {% for c in seguindo %}
+      <li>
+        <span class="nome">{{ Usuario.query.get(c.seguido_id).nome }}</span>
+        <span class="pontos">
+          {{ Usuario.query.get(c.seguido_id).tarefas | selectattr("concluida") | selectattr("__eq__", True) | list | length }} pontos
+        </span>
+        <span class="id">ID: {{ c.seguido_id }}</span>
+      </li>
+      {% endfor %}
     </ul>
 
-    <h2>Você está seguindo:</h2>
+    <h3>Quem me segue</h3>
     <ul>
-        {% for c in seguindo %}
-            <li>{{ Usuario.query.get(c.seguido_id).nome }}</li>
-        {% endfor %}
+      {% for c in seguidores %}
+      <li>
+        <span class="nome">{{ Usuario.query.get(c.seguidor_id).nome }}</span>
+        <span class="id">ID: {{ c.seguidor_id }}</span>
+      </li>
+      {% endfor %}
     </ul>
-
-    <h2>Seus seguidores:</h2>
-    <ul>
-        {% for c in seguidores %}
-            <li>{{ Usuario.query.get(c.seguidor_id).nome }}</li>
-        {% endfor %}
-    </ul>
+  </div>
 </body>
 </html>
