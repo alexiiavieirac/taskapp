@@ -9,7 +9,7 @@ from datetime import datetime
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import func
+from sqlalchemy import case, func
 
 # Configurações do Flask
 app = Flask(__name__)
@@ -230,14 +230,19 @@ def ranking():
 
     ranking = db.session.query(
         Usuario.nome,
-        db.func.count(Tarefa.id).label('tarefas_concluidas')
-    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
-    .filter(
-        Usuario.grupo_id == grupo_id,
-        Tarefa.concluida == True,
-        Tarefa.ativa == True
-    ).group_by(Usuario.id, Usuario.nome) \
-    .order_by(db.desc('tarefas_concluidas')) \
+        func.count(
+            case(
+                (Tarefa.concluida == True, 1)
+            )
+        ).label('tarefas_concluidas')
+    ).outerjoin(Tarefa, Tarefa.usuario_id == Usuario.id) \
+    .filter(Usuario.grupo_id == grupo_id) \
+    .group_by(Usuario.id, Usuario.nome) \
+    .order_by(func.count(
+        case(
+            (Tarefa.concluida == True, 1)
+        )
+    ).desc()) \
     .all()
 
     return render_template("ranking.html", ranking=ranking)
