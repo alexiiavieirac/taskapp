@@ -8,30 +8,42 @@
 </head>
 <body>
   <div class="container">
-    <h2>👥 Minhas Conexões</h2>
+        <h2>👥 Minhas Conexões</h2>
 
-    <h3>Quem eu sigo</h3>
+        <h3>👤 Quem eu sigo</h3>
     <ul>
       {% for c in seguindo %}
-      <li>
-        <span class="nome">{{ Usuario.query.get(c.seguido_id).nome }}</span>
-        <span class="pontos">
-          {{ Usuario.query.get(c.seguido_id).tarefas | selectattr("concluida") | selectattr("__eq__", True) | list | length }} pontos
-        </span>
-        <span class="id">ID: {{ c.seguido_id }}</span>
-      </li>
+        <li>{{ c.seguido.nome }} - ID: {{ c.seguido_id }}</li>
       {% endfor %}
     </ul>
 
-    <h3>Quem me segue</h3>
+    <h3>👣 Quem me segue</h3>
     <ul>
       {% for c in seguidores %}
-      <li>
-        <span class="nome">{{ Usuario.query.get(c.seguidor_id).nome }}</span>
-        <span class="id">ID: {{ c.seguidor_id }}</span>
-      </li>
+        <li>{{ c.seguidor.nome }} - ID: {{ c.seguidor_id }}</li>
       {% endfor %}
     </ul>
+
+    <h3>➕ Usuários disponíveis para seguir</h3>
+    <ul>
+      {% for usuario in usuarios %}
+        <li>
+          {{ usuario.nome }}
+          <a href="{{ url_for('seguir', usuario_id=usuario.id) }}">Seguir</a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <h3>📤 Pedidos de seguir enviados</h3>
+    <ul>
+      {% for pedido in pedidos_enviados %}
+        <li>
+          Para: {{ pedido.destinatario.nome }} - Status: {{ pedido.status }}
+        </li>
+      {% endfor %}
+    </ul>
+
+
   </div>
 </body>
 </html>

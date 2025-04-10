@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Conexao, HistoricoRanking, PedidoGrupo, SolicitacaoGrupo, TarefaPadrao, db, Usuario, Grupo, Tarefa
+from models import Conexao, HistoricoRanking, PedidoGrupo, PedidoSeguir, SolicitacaoGrupo, TarefaPadrao, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
@@ -414,22 +414,53 @@ def aceitar_convite(token):
 @app.route("/conexoes")
 @login_required
 def conexoes():
-    seguindo = current_user.seguindo.all()
-    seguidores = current_user.seguidores.all()
-    usuarios = Usuario.query.filter(Usuario.id != current_user.id).all()
-    return render_template('conexoes.html', seguindo=seguindo, seguidores=seguidores, usuarios=usuarios)
+    seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
+    seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
+
+    # Excluir quem já sigo, quem já me mandou pedido, quem sou eu
+    ids_bloqueados = [c.seguido_id for c in seguindo] + [current_user.id]
+    pedidos_enviados = PedidoSeguir.query.filter_by(remetente_id=current_user.id).all()
+    ids_bloqueados += [p.destinatario_id for p in pedidos_enviados]
+
+    usuarios_disponiveis = Usuario.query.filter(~Usuario.id.in_(ids_bloqueados)).all()
+
+    return render_template(
+        "conexoes.html",
+        seguindo=seguindo,
+        seguidores=seguidores,
+        usuarios=usuarios_disponiveis,
+        pedidos_enviados=pedidos_enviados
+    )
+
+
 
 # Rotas de Seguir - Permitir que o usuário logado siga outro usuário.
 @app.route("/seguir/<int:usuario_id>")
 @login_required
 def seguir(usuario_id):
-    conexao_existente = Conexao.query.filter_by(seguidor_id=current_user.id, seguido_id=usuario_id).first()
-    if not conexao_existente:
-        nova_conexao = Conexao(seguidor_id=current_user.id, seguido_id=usuario_id)
-        db.session.add(nova_conexao)
-        db.session.commit()
-    flash("Agora você está seguindo essa pessoa!")
-    return redirect(url_for('conexoes'))
+    destinatario = Usuario.query.get_or_404(usuario_id)
+
+    # Verifica se já existe um pedido pendente
+    pedido_existente = PedidoSeguir.query.filter_by(
+        remetente_id=current_user.id,
+        destinatario_id=usuario_id,
+        status="pendente"
+    ).first()
+
+    if pedido_existente:
+        flash("Você já enviou um pedido para esse usuário.")
+        return redirect(url_for("conexoes"))
+
+    novo_pedido = PedidoSeguir(
+        remetente_id=current_user.id,
+        destinatario_id=usuario_id,
+        status="pendente"
+    )
+    db.session.add(novo_pedido)
+    db.session.commit()
+
+    flash("Pedido de seguir enviado!")
+    return redirect(url_for("conexoes"))
 
 # Rota de Entrar no Grupo - Enviar um pedido de entrada em um grupo específico.
 @app.route("/entrar_grupo/<int:grupo_id>")
@@ -447,25 +478,35 @@ def entrar_grupo(grupo_id):
 @app.route("/aceitar_pedido/<int:pedido_id>")
 @login_required
 def aceitar_pedido(pedido_id):
-    pedido = SolicitacaoGrupo.query.get_or_404(pedido_id)
-    if pedido.grupo_id == current_user.grupo_id:
-        pedido.status = "aceito"
-        usuario = Usuario.query.get(pedido.solicitante_id)
-        usuario.grupo_id = pedido.grupo_id
-        db.session.commit()
-        flash("Pedido aceito!")
-    return redirect(url_for("ver_pedidos"))
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+    if pedido.destinatario_id != current_user.id:
+        flash("Você não pode aceitar este pedido.")
+        return redirect(url_for("conexoes"))
+
+    pedido.status = "aceito"
+
+    conexao = Conexao(
+        seguidor_id=pedido.remetente_id,
+        seguido_id=pedido.destinatario_id
+    )
+    db.session.add(conexao)
+    db.session.commit()
+
+    flash("Agora essa pessoa está te seguindo!")
+    return redirect(url_for("conexoes"))
 
 @app.route("/rejeitar_pedido/<int:pedido_id>")
 @login_required
 def rejeitar_pedido(pedido_id):
-    pedido = SolicitacaoGrupo.query.get(pedido_id)
-    
-    if pedido and pedido.grupo_id == current_user.grupo_id:
-        db.session.delete(pedido)
-        db.session.commit()
-    
-    return redirect(url_for("pedidos"))
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+    if pedido.destinatario_id != current_user.id:
+        flash("Você não pode rejeitar este pedido.")
+        return redirect(url_for("conexoes"))
+
+    db.session.delete(pedido)
+    db.session.commit()
+    flash("Pedido de seguimento rejeitado.")
+    return redirect(url_for("conexoes"))
 
 # Rota de Rejeitar Pedido - Listar todos os pedidos de entrada pendentes no grupo do usuário logado.
 @app.route("/pedidos")
@@ -474,6 +515,68 @@ def ver_pedidos():
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
     return render_template('pedidos.html', pedidos=pedidos)
 
+# USUARIOS E CONEXOES
+@app.route('/pedidos')
+@login_required
+def pedidos():
+    pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
+    return render_template("pedidos.html", pedidos_recebidos=pedidos_recebidos)
+
+
+# Rota de Pedidos de Seguir - Enviar um pedido de seguimento para outro usuário.
+@app.route("/seguir/<int:usuario_id>")
+@login_required
+def pedir_seguir(usuario_id):
+    destinatario = Usuario.query.get_or_404(usuario_id)
+    
+    pedido_existente = PedidoSeguir.query.filter_by(
+        remetente_id=current_user.id,
+        destinatario_id=destinatario.id,
+        status='pendente'
+    ).first()
+
+    if not pedido_existente:
+        novo_pedido = PedidoSeguir(remetente_id=current_user.id, destinatario_id=destinatario.id)
+        db.session.add(novo_pedido)
+        db.session.commit()
+    
+    flash("Solicitação enviada!")
+    return redirect(url_for('conexoes'))
+
+# Rota para aceitar o pedido de seguimento
+@app.route("/aceitar_seguir/<int:pedido_id>")
+@login_required
+def aceitar_seguir(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+
+    if pedido.destinatario_id != current_user.id:
+        abort(403)
+
+    # Cria a conexão
+    conexao = Conexao(seguidor_id=pedido.remetente_id, seguido_id=pedido.destinatario_id)
+    db.session.add(conexao)
+
+    # Atualiza pedido
+    pedido.status = "aceito"
+    db.session.commit()
+
+    flash("Pedido aceito!", "success")
+    return redirect(url_for("pedidos"))
+
+# Rota para rejeitar o pedido de seguimento
+@app.route("/rejeitar_seguir/<int:pedido_id>")
+@login_required
+def rejeitar_seguir(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+
+    if pedido.destinatario_id != current_user.id:
+        abort(403)
+
+    pedido.status = "rejeitado"
+    db.session.commit()
+
+    flash("Pedido rejeitado.", "info")
+    return redirect(url_for("pedidos"))
 
 
 # CONCLUIR, DELETAR E EDITAR TAREFAS

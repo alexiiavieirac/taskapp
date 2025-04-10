@@ -9,22 +9,17 @@
 <body>
     <div class="container">
         <h2>📨 Pedidos de entrada no seu grupo:</h2>
-
-        {% for pedido in pedidos %}
-        <div class="pedido">
-            <span>{{ pedido.nome }} — {{ pedido.email }}</span>
-            <div class="botoes">
-                <form action="{{ url_for('aceitar_pedido', pedido_id=pedido.id) }}" method="post">
-                    <button class="aceitar" type="submit">Aceitar</button>
-                </form>
-                <form action="{{ url_for('rejeitar_pedido', pedido_id=pedido.id) }}" method="post">
-                    <button class="rejeitar" type="submit">Rejeitar</button>
-                </form>
-            </div>
-        </div>
-        {% else %}
-            <p style="text-align: center;">Nenhum pedido pendente.</p>
-        {% endfor %}
-    </div>
+    
+        <ul>
+            {% for pedido in pedidos_recebidos %}
+              <li>
+                {{ pedido.remetente.nome }}
+                <a href="{{ url_for('aceitar_seguir', pedido_id=pedido.id) }}">Aceitar</a>
+                <a href="{{ url_for('rejeitar_seguir', pedido_id=pedido.id) }}">Rejeitar</a>
+              </li>
+            {% else %}
+              <li>Nenhum pedido recebido.</li>
+            {% endfor %}
+        </ul>
 </body>
 </html>

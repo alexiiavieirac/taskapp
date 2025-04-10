@@ -20,7 +20,17 @@ class Grupo(db.Model):
     )
 
 
+class Conexao(db.Model):
+    seguidor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
+    seguido_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
+    
+    seguidor = db.relationship('Usuario', foreign_keys=[seguidor_id], back_populates='seguindo_conexoes')
+    seguido = db.relationship('Usuario', foreign_keys=[seguido_id], back_populates='seguindo_conexoes')
+
+
 class Usuario(UserMixin, db.Model):
+    __tablename__ = 'usuario'
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
@@ -28,16 +38,38 @@ class Usuario(UserMixin, db.Model):
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
     avatar = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)  
-    rede_social = db.Column(db.String(255), nullable=True)  
+    rede_social = db.Column(db.String(255), nullable=True)
 
-    seguindo = db.relationship(
-        'Usuario',
-        secondary=seguidores,
-        primaryjoin=(seguidores.c.seguidor_id == id),
-        secondaryjoin=(seguidores.c.seguido_id == id),
-        backref=db.backref('seguidores', lazy='dynamic'),
+    # Relacionamento com a tabela de seguidores (Conexões)
+    seguindo_conexoes = db.relationship(
+        'Conexao',
+        foreign_keys=[Conexao.seguidor_id],
+        back_populates='seguidor',
         lazy='dynamic'
     )
+
+    # Relacionamento com os seguidores (Conexões onde o usuario é o "seguido")
+    seguidores_conexoes = db.relationship(
+        'Conexao',
+        foreign_keys=[Conexao.seguido_id],
+        back_populates='seguido',
+        lazy='dynamic'
+    )
+
+    def is_following(self, usuario):
+        return self.seguindo_conexoes.filter(Conexao.seguido_id == usuario.id).count() > 0
+
+
+class PedidoSeguir(db.Model):
+    __tablename__ = 'pedido_seguir'
+
+    id = db.Column(db.Integer, primary_key=True)
+    remetente_id = db.Column(db.Integer, db.ForeignKey("usuario.id"), nullable=False)
+    destinatario_id = db.Column(db.Integer, db.ForeignKey("usuario.id"), nullable=False)
+    status = db.Column(db.String(20), default="pendente")
+
+    remetente = db.relationship("Usuario", foreign_keys=[remetente_id], backref="pedidos_enviados")
+    destinatario = db.relationship("Usuario", foreign_keys=[destinatario_id], backref="pedidos_recebidos")
 
 
 class ConviteGrupo(db.Model):
@@ -45,10 +77,10 @@ class ConviteGrupo(db.Model):
     email_convidado = db.Column(db.String(120), nullable=False)
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
     token = db.Column(db.String(64), unique=True, nullable=False)
-    status = db.Column(db.String(20), default="pendente")  # pendente, aceito, expirado, etc.
+    status = db.Column(db.String(20), default="pendente")
     data_envio = db.Column(db.DateTime, default=datetime.utcnow)
 
-    grupo = db.relationship("Grupo", backref="convites")    
+    grupo = db.relationship("Grupo", backref="convites")   
 
 
 class PedidoGrupo(db.Model):
@@ -59,12 +91,6 @@ class PedidoGrupo(db.Model):
 
     usuario = db.relationship('Usuario', backref='pedidos_grupo')
     grupo = db.relationship('Grupo', backref='pedidos')
-
-
-class Conexao(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    seguidor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
-    seguido_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
 
 class SolicitacaoGrupo(db.Model):
