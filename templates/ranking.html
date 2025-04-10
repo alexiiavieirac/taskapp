@@ -4,63 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ranking Semanal</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            padding: 2rem;
-        }
-
-        .ranking-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            text-align: center;
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-            color: #222;
-        }
-
-        ol {
-            list-style: none;
-            padding: 0;
-        }
-
-        ol li {
-            background-color: #e9ecef;
-            margin-bottom: 0.75rem;
-            padding: 1rem;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        ol li:nth-child(1) {
-            background-color: #fff3cd;
-            font-weight: bold;
-        }
-
-        ol li:nth-child(2) {
-            background-color: #e2e3e5;
-        }
-
-        ol li:nth-child(3) {
-            background-color: #d1ecf1;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ranking.css') }}">
 </head>
 <body>
     <div class="ranking-container">
         <h2>🏆 Ranking Semanal</h2>
+        <div style="text-align: center; margin-bottom: 1rem; font-weight: bold;">
+            ⏳ Tempo restante para o fim da semana:
+            {{ tempo_restante.days }} dias,
+            {{ tempo_restante.seconds // 3600 }} horas,
+            {{ (tempo_restante.seconds // 60) % 60 }} minutos
+        </div>
         <ol>
             {% for nome, tarefas_concluidas in ranking %}
                 <li class="px-4 py-2 rounded-lg shadow-sm flex justify-between items-center">
@@ -91,6 +45,19 @@
                 transition: background-color 0.3s ease;
             " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
                 ⬅️ Voltar para o início
+            </a>
+
+            <a href="{{ url_for('historico') }}" style="
+                display: inline-block;
+                padding: 0.75rem 1.5rem;
+                background-color: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: bold;
+                transition: background-color 0.3s ease;
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                ⬅️ Ver histórico
             </a>
         </div>
     </div>

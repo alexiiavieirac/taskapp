@@ -1,0 +1,102 @@
+.historico-body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f7f9fb;
+    padding: 30px;
+    color: #333;
+}
+
+.historico-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.historico-titulo {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.navegacao {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.navegacao-btn {
+    padding: 8px 12px;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.navegacao-btn:hover {
+    background-color: #0056b3;
+}
+
+.vencedor-titulo {
+    text-align: center;
+    color: #2d7a2d;
+    margin-bottom: 20px;
+}
+
+.vencedor-nome {
+    font-weight: bold;
+    color: #256d25;
+}
+
+.ranking-lista {
+    list-style-type: none;
+    padding: 0;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+}
+
+.ranking-item.vencedor {
+    background-color: #e8fce8;
+    font-weight: bold;
+}
+
+.usuario-nome {
+    flex: 1;
+}
+
+.pontos {
+    color: #333;
+}
+
+.trofeu {
+    margin-left: 10px;
+}
+
+.sem-registros {
+    text-align: center;
+    color: #777;
+    margin: 40px 0;
+}
+
+.btn-voltar {
+    display: block;
+    margin: 30px auto 0;
+    text-align: center;
+    padding: 10px 15px;
+    background-color: #6c757d;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    width: fit-content;
+}
+
+.btn-voltar:hover {
+    background-color: #5a6268;
+}

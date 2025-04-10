@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Histórico Diário</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/historico.css') }}">
+</head>
+<body class="historico-body">
+
+    <div class="historico-container">
+        <h2 class="historico-titulo">📅 Histórico do dia <span>{{ data }}</span></h2>
+
+        <div class="navegacao">
+            <a class="navegacao-btn" href="{{ url_for('historico', data=dia_anterior) }}">⬅️ Dia anterior</a>
+            <a class="navegacao-btn" href="{{ url_for('historico', data=proximo_dia) }}">➡️ Próximo dia</a>
+        </div>
+
+        {% if historico %}
+            <h3 class="vencedor-titulo">🏆 Vencedor do dia: <span class="vencedor-nome">{{ vencedor }}</span></h3>
+            <ul class="ranking-lista">
+                {% for usuario, tarefas_concluidas in historico %}
+                    <li class="ranking-item {% if usuario == vencedor %}vencedor{% endif %}">
+                        <span class="usuario-nome">{{ usuario }}</span>
+                        <span class="pontos">{{ tarefas_concluidas }} ponto{{ 's' if tarefas_concluidas > 1 else '' }}</span>
+                        {% if usuario == vencedor %}
+                            <span class="trofeu">🥇</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="sem-registros">Nenhuma tarefa concluída neste dia.</p>
+        {% endif %}
+
+        <a class="btn-voltar" href="{{ url_for('index') }}">🔙 Voltar para início</a>
+    </div>
+
+</body>
+</html>

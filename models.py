@@ -73,6 +73,18 @@ class SolicitacaoGrupo(db.Model):
     status = db.Column(db.String(20), default="pendente") 
 
 
+class HistoricoRanking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
+    tarefas_concluidas = db.Column(db.Integer, nullable=False)
+    semana = db.Column(db.String(10), nullable=False)  # Ex: '2025-W15'
+    data_registro = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship('Usuario')
+    grupo = db.relationship('Grupo')
+
+
 class Tarefa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descricao = db.Column(db.String(200), nullable=False)
@@ -83,3 +95,4 @@ class Tarefa(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
     pontos = db.Column(db.Integer, default=10)
     ativa = db.Column(db.Boolean, default=True)
+    

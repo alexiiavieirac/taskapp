@@ -4,8 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Conexao, PedidoGrupo, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
-from datetime import datetime
+from models import Conexao, HistoricoRanking, PedidoGrupo, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
+from datetime import datetime, timedelta
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
@@ -138,6 +138,7 @@ def logout():
 @login_required
 def index():
     grupo_id = current_user.grupo_id
+    semana = obter_limites_semana()
     
     if request.method == "POST":
         descricao = request.form["descricao"]
@@ -227,6 +228,7 @@ def grupo():
 @app.route("/ranking")
 def ranking():
     grupo_id = current_user.grupo_id
+    inicio_semana, fim_semana = obter_limites_semana()
 
     ranking = db.session.query(
         Usuario.nome,
@@ -237,6 +239,11 @@ def ranking():
         ).label('tarefas_concluidas')
     ).outerjoin(Tarefa, Tarefa.usuario_id == Usuario.id) \
     .filter(Usuario.grupo_id == grupo_id) \
+    .filter(
+        Tarefa.concluida == True,
+        Tarefa.data_criacao >= inicio_semana,
+        Tarefa.data_criacao <= fim_semana
+    ) \
     .group_by(Usuario.id, Usuario.nome) \
     .order_by(func.count(
         case(
@@ -245,7 +252,80 @@ def ranking():
     ).desc()) \
     .all()
 
-    return render_template("ranking.html", ranking=ranking)
+    semana_anterior_inicio = inicio_semana - timedelta(days=7)
+    semana_anterior_fim = fim_semana - timedelta(days=7)
+    semana_label = semana_anterior_inicio.strftime("%Y-W%U")
+
+    ja_salvo = HistoricoRanking.query.filter_by(grupo_id=grupo_id, semana=semana_label).first()
+
+    if not ja_salvo:
+        ranking_anterior = db.session.query(
+            Usuario.id.label("usuario_id"),
+            func.count(
+                case((Tarefa.concluida == True, 1))
+            ).label('tarefas_concluidas')
+        ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+        .filter(
+            Usuario.grupo_id == grupo_id,
+            Tarefa.concluida == True,
+            Tarefa.data_criacao >= semana_anterior_inicio,
+            Tarefa.data_criacao <= semana_anterior_fim
+        ) \
+        .group_by(Usuario.id) \
+        .all()
+
+        for r in ranking_anterior:
+            novo_registro = HistoricoRanking(
+                usuario_id=r.usuario_id,
+                grupo_id=grupo_id,
+                tarefas_concluidas=r.tarefas_concluidas,
+                semana=semana_label
+            )
+            db.session.add(novo_registro)
+        db.session.commit()
+
+    tempo_restante = fim_semana - datetime.utcnow()
+
+    return render_template("ranking.html", ranking=ranking, tempo_restante=tempo_restante)
+
+@app.route("/historico")
+@login_required
+def historico():
+    grupo_id = current_user.grupo_id
+
+    data_str = request.args.get("data")
+    if data_str:
+        data = datetime.strptime(data_str, "%Y-%m-%d")
+    else:
+        data = datetime.utcnow()  # ou datetime.now() se usar horário local
+
+    inicio_dia = datetime(data.year, data.month, data.day)
+    fim_dia = inicio_dia + timedelta(days=1)
+
+    tarefas_por_usuario = db.session.query(
+        Usuario.nome,
+        func.count(Tarefa.id).label("tarefas_concluidas")
+    ).join(Tarefa) \
+    .filter(
+        Usuario.grupo_id == grupo_id,
+        Tarefa.concluida == True,
+        Tarefa.data_criacao >= inicio_dia,
+        Tarefa.data_criacao < fim_dia
+    ).group_by(Usuario.id).order_by(func.count(Tarefa.id).desc()).all()
+
+    vencedor = tarefas_por_usuario[0].nome if tarefas_por_usuario else None
+
+    dia_anterior = (data - timedelta(days=1)).strftime("%Y-%m-%d")
+    proximo_dia = (data + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    return render_template(
+        "historico.html",
+        historico=tarefas_por_usuario,
+        vencedor=vencedor,
+        data=data.strftime("%d/%m/%Y"),
+        dia_anterior=dia_anterior,
+        proximo_dia=proximo_dia
+    )
 
 # Rota de Adicionar-membro - Permitir que o usuário adicione um membro ao seu grupo informando o e-mail do usuário.
 @app.route("/adicionar-membro", methods=["POST"])
@@ -411,6 +491,50 @@ def editar(id):
         return redirect("/")
 
     return render_template("editar.html", tarefa=tarefa)
+
+
+# RANKING SEMANAL
+def obter_limites_semana():
+    hoje = datetime.utcnow()
+    # weekday() retorna 0 (segunda) até 6 (domingo)
+    dias_desde_domingo = (hoje.weekday() + 1) % 7  # transforma segunda=1 ... domingo=0
+    inicio_semana = hoje - timedelta(days=dias_desde_domingo)
+    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
+    return inicio_semana, fim_semana
+
+# SALVAR HISTORICO POR SEMANA
+def salvar_historico_semanal():
+    hoje = datetime.utcnow()
+    # Pega a semana passada (domingo a sábado)
+    inicio_semana = hoje - timedelta(days=hoje.weekday() + 8)
+    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+    semana_label = inicio_semana.strftime("%Y-W%U")
+
+    ranking = db.session.query(
+        Usuario.id.label("usuario_id"),
+        Usuario.grupo_id,
+        func.count(Tarefa.id).label("tarefas_concluidas")
+    ).join(Tarefa, Tarefa.usuario_id == Usuario.id)\
+     .filter(
+        Tarefa.concluida == True,
+        Tarefa.data_conclusao >= inicio_semana,
+        Tarefa.data_conclusao <= fim_semana
+     ).group_by(Usuario.id, Usuario.grupo_id)\
+     .all()
+
+    for registro in ranking:
+        historico = HistoricoRanking(
+            usuario_id=registro.usuario_id,
+            grupo_id=registro.grupo_id,
+            tarefas_concluidas=registro.tarefas_concluidas,
+            semana=semana_label
+        )
+        db.session.add(historico)
+
+    db.session.commit()
 
 if __name__ == "__main__":
     with app.app_context():
