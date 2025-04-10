@@ -31,6 +31,9 @@
         <div class="navbar-actions">
             {% if current_user.is_authenticated %}
                 <div class="navbar-user">
+                    {% if current_user.avatar %}
+                        <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno">
+                    {% endif %}
                     <span class="user-welcome">Bem-vindo(a), {{ current_user.nome }} 👋</span>
                     <form action="{{ url_for('logout') }}" method="GET">
                         <button class="logout-btn" type="submit">Sair</button>

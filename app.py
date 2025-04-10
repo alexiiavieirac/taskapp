@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask.cli import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -12,13 +13,15 @@ from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
 
 # Configurações do Flask
+load_dotenv()
+
 app = Flask(__name__)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'lekacvieira@gmail.com'
-app.config['MAIL_PASSWORD'] = 'hwhg tixs wjvz wzfb'
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
 
 app.config['SECRET_KEY'] = 'chave-super-secreta'
@@ -226,10 +229,13 @@ def grupo():
 
 # Rota de Ranking - Mostrar o ranking de tarefas concluídas por grupo, ordenado do maior para o menor número de tarefas concluídas.
 @app.route("/ranking")
+@login_required
 def ranking():
     grupo_id = current_user.grupo_id
     inicio_semana, fim_semana = obter_limites_semana()
+    agora = datetime.utcnow()
 
+    # Ranking da semana atual
     ranking = db.session.query(
         Usuario.nome,
         func.count(
@@ -246,45 +252,46 @@ def ranking():
     ) \
     .group_by(Usuario.id, Usuario.nome) \
     .order_by(func.count(
-        case(
-            (Tarefa.concluida == True, 1)
-        )
+        case((Tarefa.concluida == True, 1))
     ).desc()) \
     .all()
 
+    # Cálculo da semana anterior
     semana_anterior_inicio = inicio_semana - timedelta(days=7)
     semana_anterior_fim = fim_semana - timedelta(days=7)
     semana_label = semana_anterior_inicio.strftime("%Y-W%U")
 
-    ja_salvo = HistoricoRanking.query.filter_by(grupo_id=grupo_id, semana=semana_label).first()
+    # Verifica se já passou da semana atual para salvar o histórico da semana passada
+    if agora > fim_semana:
+        ja_salvo = HistoricoRanking.query.filter_by(grupo_id=grupo_id, semana=semana_label).first()
 
-    if not ja_salvo:
-        ranking_anterior = db.session.query(
-            Usuario.id.label("usuario_id"),
-            func.count(
-                case((Tarefa.concluida == True, 1))
-            ).label('tarefas_concluidas')
-        ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
-        .filter(
-            Usuario.grupo_id == grupo_id,
-            Tarefa.concluida == True,
-            Tarefa.data_criacao >= semana_anterior_inicio,
-            Tarefa.data_criacao <= semana_anterior_fim
-        ) \
-        .group_by(Usuario.id) \
-        .all()
+        if not ja_salvo:
+            ranking_anterior = db.session.query(
+                Usuario.id.label("usuario_id"),
+                func.count(
+                    case((Tarefa.concluida == True, 1))
+                ).label('tarefas_concluidas')
+            ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+            .filter(
+                Usuario.grupo_id == grupo_id,
+                Tarefa.concluida == True,
+                Tarefa.data_criacao >= semana_anterior_inicio,
+                Tarefa.data_criacao <= semana_anterior_fim
+            ) \
+            .group_by(Usuario.id) \
+            .all()
 
-        for r in ranking_anterior:
-            novo_registro = HistoricoRanking(
-                usuario_id=r.usuario_id,
-                grupo_id=grupo_id,
-                tarefas_concluidas=r.tarefas_concluidas,
-                semana=semana_label
-            )
-            db.session.add(novo_registro)
-        db.session.commit()
+            for r in ranking_anterior:
+                novo_registro = HistoricoRanking(
+                    usuario_id=r.usuario_id,
+                    grupo_id=grupo_id,
+                    tarefas_concluidas=r.tarefas_concluidas,
+                    semana=semana_label
+                )
+                db.session.add(novo_registro)
+            db.session.commit()
 
-    tempo_restante = fim_semana - datetime.utcnow()
+    tempo_restante = fim_semana - agora
 
     return render_template("ranking.html", ranking=ranking, tempo_restante=tempo_restante)
 
@@ -434,25 +441,31 @@ def ver_pedidos():
 
 # CONCLUIR, DELETAR E EDITAR TAREFAS
 @app.route("/concluir/<int:id>")
+@login_required
 def concluir(id):
     tarefa = Tarefa.query.get_or_404(id)
 
-    # Impede qualquer tentativa de desmarcar a tarefa, mesmo pelo próprio usuário
+    # Se já está concluída
     if tarefa.concluida:
-        flash("Tarefa já foi concluída e não pode ser desmarcada.")
-        return redirect("/")
-
-    # Impede que o usuário conclua uma tarefa já atribuída a outro usuário
-    if tarefa.usuario_id and tarefa.usuario_id != current_user.id:
-        flash("Essa tarefa já está atribuída a outro usuário.")
-        return redirect("/")
-
-    # Marca como concluída e associa o usuário atual
-    tarefa.concluida = True
-    tarefa.usuario_id = current_user.id
+        # Permite desmarcar apenas se foi o mesmo usuário que concluiu
+        if tarefa.usuario_id == current_user.id:
+            tarefa.concluida = False
+            tarefa.usuario_id = None
+            flash("Tarefa desmarcada com sucesso!")
+        else:
+            flash("Apenas quem concluiu a tarefa pode desmarcá-la.")
+            return redirect("/")
+    else:
+        # Se não está concluída e não está atribuída ou é do próprio usuário
+        if tarefa.usuario_id is None or tarefa.usuario_id == current_user.id:
+            tarefa.concluida = True
+            tarefa.usuario_id = current_user.id
+            flash("Tarefa concluída com sucesso!")
+        else:
+            flash("Essa tarefa já está atribuída a outro usuário.")
+            return redirect("/")
 
     db.session.commit()
-    flash("Tarefa concluída com sucesso!")
     return redirect("/")
 
 @app.route("/deletar/<int:id>")
@@ -535,6 +548,30 @@ def salvar_historico_semanal():
         db.session.add(historico)
 
     db.session.commit()
+
+# CONFIGURACOES
+@app.route('/configuracoes', methods=["GET", "POST"])
+@login_required
+def configuracoes():
+    if request.method == "POST":
+        current_user.nome = request.form['nome']
+        current_user.email = request.form['email']
+        current_user.bio = request.form.get('bio')
+        current_user.rede_social = request.form.get('rede_social')
+
+        # Upload da foto
+        avatar_file = request.files.get('avatar_file')
+        if avatar_file and avatar_file.filename != "":
+            filename = secure_filename(avatar_file.filename)
+            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            avatar_file.save(path)
+            current_user.avatar = filename  # Apenas o nome do arquivo
+
+        db.session.commit()
+        flash("Configurações atualizadas com sucesso!", "success")
+        return redirect(url_for('configuracoes'))
+
+    return render_template("configuracoes.html")
 
 if __name__ == "__main__":
     with app.app_context():

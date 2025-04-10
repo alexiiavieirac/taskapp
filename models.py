@@ -26,8 +26,9 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
-    avatar = db.Column(db.String(200), nullable=True)  
+    avatar = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)  
+    rede_social = db.Column(db.String(255), nullable=True)  
 
     seguindo = db.relationship(
         'Usuario',

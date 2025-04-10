@@ -26,9 +26,17 @@ border-bottom: 1px solid #ccc;
 
 /* Agrupamento nome + botão */
 .navbar-user {
-display: flex;
-align-items: center;
-gap: 12px; /* Espaço entre nome e botão */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar-pequeno {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ccc;
 }
 
 /* Texto de boas-vindas */

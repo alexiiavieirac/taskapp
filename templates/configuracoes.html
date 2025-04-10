@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Configurações</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/configuracoes.css') }}">
+</head>
+<body>
+    <h1>Configurações da Conta</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p class="{{ category }}">{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data">
+        <!-- Upload de imagem -->
+        <label for="avatar_file">Foto de perfil:</label><br>
+        <input type="file" name="avatar_file" accept="image/*"><br><br>
+    
+        {% if current_user.avatar %}
+            <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" width="100"><br><br>
+        {% endif %}
+
+        <!-- Nome -->
+        <label for="nome">Nome:</label><br>
+        <input type="text" name="nome" id="nome" value="{{ current_user.nome }}" required><br><br>
+    
+        <!-- Email -->
+        <label for="email">E-mail:</label><br>
+        <input type="email" name="email" id="email" value="{{ current_user.email }}" required><br><br>
+    
+        <!-- Bio -->
+        <label for="bio">Bio:</label><br>
+        <textarea name="bio" id="bio" rows="4" cols="50">{{ current_user.bio or '' }}</textarea><br><br>
+    
+        <!-- URL de rede social -->
+        <label for="rede_social">Link de rede social (opcional):</label><br>
+        <input type="text" name="rede_social" id="rede_social" value="{{ current_user.rede_social or '' }}"><br><br>
+    
+        <button type="submit">Salvar Alterações</button>
+    </form>
+
+    <a href="{{ url_for('index') }}">← Voltar</a>
+</body>
+</html>
