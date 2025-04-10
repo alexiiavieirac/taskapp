@@ -1,0 +1,158 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f6fa;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Barra superior */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff;
+    padding: 12px 30px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar-user img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-welcome {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.logout-btn {
+    background-color: #e74c3c;
+    color: white;
+    padding: 8px 14px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Conteúdo principal */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+h1 {
+    font-size: 26px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+form {
+    background-color: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 600px;
+}
+
+/* Grade das tarefas */
+.tarefas-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza a lista inteira na tela */
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+/* Cada tarefa */
+.tarefa-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Alinha checkbox + texto à esquerda */
+    width: 100%;
+    max-width: 300px; /* controla o tamanho do bloco */
+}
+
+/* Checkbox */
+.tarefa-item input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+/* Texto da tarefa */
+.tarefa-item label {
+    font-size: 16px;
+}
+
+/* Botão de adicionar */
+button[type="submit"] {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    margin-top: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: block;
+    margin: 0 auto;
+}
+
+button[type="submit"]:hover {
+    background-color: #1e8449;
+}
+
+/* Link para voltar */
+a.voltar {
+    margin-top: 20px;
+    font-size: 15px;
+    color: #2980b9;
+    text-decoration: none;
+}
+
+a.voltar:hover {
+    text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+    form {
+        padding: 25px;
+    }
+
+    .tarefas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .navbar-user img {
+        width: 40px;
+        height: 40px;
+    }
+}

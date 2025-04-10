@@ -6,6 +6,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/historico.css') }}">
 </head>
 <body class="historico-body">
+    <div class="top-bar">
+        {% if current_user.is_authenticated %}
+            <div class="navbar-user">
+                {% if current_user.avatar %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+                <span class="user-welcome">{{ current_user.nome }} </span>
+            </div>
+        {% endif %}
+        <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+    </div>
 
     <div class="historico-container">
         <h2 class="historico-titulo">📅 Histórico: <span>{{ data }}</span></h2>

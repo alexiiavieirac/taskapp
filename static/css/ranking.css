@@ -8,6 +8,7 @@ body {
 .ranking-container {
     max-width: 600px;
     margin: 0 auto;
+    margin-top: 80px;
     background: #ffffff;
     padding: 2rem;
     border-radius: 16px;
@@ -48,4 +49,54 @@ ol li:nth-child(2) {
 
 ol li:nth-child(3) {
     background-color: #d1ecf1;
+}
+
+/* Barra superior */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #ffffff;
+    padding: 12px 30px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex; /* ADICIONADO */
+    justify-content: space-between; /* ADICIONADO */
+    align-items: center; 
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar-user img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-welcome {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.logout-btn {
+    background-color: #e74c3c;
+    color: white;
+    padding: 8px 14px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
 }

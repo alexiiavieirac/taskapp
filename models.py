@@ -86,14 +86,26 @@ class HistoricoRanking(db.Model):
     grupo = db.relationship('Grupo')
 
 
-class Tarefa(db.Model):
+class TarefaPadrao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descricao = db.Column(db.String(200), nullable=False)
-    concluida = db.Column(db.Boolean, default=False)
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
-    imagem = db.Column(db.String(200), nullable=True)
+    imagem = db.Column(db.String(200))
+
+
+class Tarefa(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(120))
+    imagem = db.Column(db.String(120), nullable=True)
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'))
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
-    pontos = db.Column(db.Integer, default=10)
+
+    data_conclusao = db.Column(db.DateTime, nullable=True)
+
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))  # quem criou
+    concluida_por = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)  # quem concluiu
+
+    criador = db.relationship("Usuario", foreign_keys=[usuario_id])
+    concluidor = db.relationship("Usuario", foreign_keys=[concluida_por])
+
+    concluida = db.Column(db.Boolean, default=False)
     ativa = db.Column(db.Boolean, default=True)
-    
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)

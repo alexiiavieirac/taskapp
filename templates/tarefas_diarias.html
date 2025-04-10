@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Tarefas Diárias</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tarefas_diarias.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        {% if current_user.is_authenticated %}
+            <div class="navbar-user">
+                {% if current_user.avatar %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+                <span class="user-welcome">{{ current_user.nome }} </span>
+            </div>
+        {% endif %}
+        <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+    </div>
+
+    <main>
+        <h1>Selecionar Tarefas Diárias</h1>
+        <form method="POST">
+            <div class="tarefas-grid">
+                {% for tarefa in tarefas|sort %}
+                    <div class="tarefa-item">
+                        <input type="checkbox" name="tarefas" value="{{ tarefa }}" id="{{ tarefa }}">
+                        <label for="{{ tarefa }}">{{ tarefa }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="submit">Adicionar</button>
+        </form>
+        <a class="voltar" href="{{ url_for('index') }}">← Voltar para Minhas Tarefas</a>
+    </main>
+</body>
+</html>

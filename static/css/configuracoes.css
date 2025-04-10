@@ -63,11 +63,28 @@
         background-color: #2980b9;
     }
 
-    img {
-        display: block;
-        margin: 0 auto 20px;
+    .upload-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      
+      .upload-info {
+        display: flex;
+        flex-direction: column;
+        font-weight: bold;
+      }
+      
+      .avatar-preview img {
+        width: 110px; 
+        height: 110px;
         border-radius: 50%;
         border: 3px solid #3498db;
+        object-fit: cover;
+        position: relative;
+        top: 17px; 
+        left: 60px;
     }
 
     .success {

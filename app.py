@@ -1,11 +1,12 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+import re
+from flask import Flask, abort, render_template, request, redirect, url_for, flash, session
 from flask.cli import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Conexao, HistoricoRanking, PedidoGrupo, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
+from models import Conexao, HistoricoRanking, PedidoGrupo, SolicitacaoGrupo, TarefaPadrao, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
@@ -79,6 +80,11 @@ def register():
         senha = request.form.get("senha")
         grupo_nome = request.form.get("grupo")
 
+        # Valida a senha
+        if not validar_senha(senha):
+            flash("A senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger")
+            return redirect(url_for('register'))
+
         # Verifica se o e-mail já está cadastrado
         if Usuario.query.filter_by(email=email).first():
             flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning")
@@ -105,6 +111,19 @@ def register():
         return redirect(url_for('index'))
 
     return render_template("register.html")
+
+# ROTA PARA SENHA
+def validar_senha(senha):
+    # Verifica se a senha atende aos requisitos
+    if len(senha) < 8 or len(senha) > 15:
+        return False
+    if not re.search(r"[A-Z]", senha):  # Verifica se tem letra maiúscula
+        return False
+    if not re.search(r"[0-9]", senha):  # Verifica se tem número
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):  # Verifica se tem caractere especial
+        return False
+    return True
 
 # Rota de Login
 @app.route("/login", methods=["GET", "POST"])
@@ -142,11 +161,32 @@ def logout():
 def index():
     grupo_id = current_user.grupo_id
     semana = obter_limites_semana()
-    
+
+    # Tarefas pré-estabelecidas (iguais às de tarefas_diarias)
+    tarefas_pre_estabelecidas = [
+        "Lavar louça",
+        "Varrer a casa",
+        "Passar pano nos móveis",
+        "Lavar banheiro",
+        "Retirar lixos",
+        "Recolher roupa",
+        "Estender roupa",
+        "Colocar roupa para lavar",
+        "Arrumar o quarto",
+        "Guardar as roupas",
+        "Fazer comida",
+        "Fazer compras"
+    ]
+
     if request.method == "POST":
-        descricao = request.form["descricao"]
+        descricao = request.form["descricao"].strip()
         imagem = request.files.get("imagem")
         nome_imagem = None
+
+        # Verifica se é uma tarefa pré-estabelecida
+        if descricao in tarefas_pre_estabelecidas:
+            flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.")
+            return redirect(url_for("index"))
 
         if imagem and imagem.filename != "":
             nome_imagem = secure_filename(imagem.filename)
@@ -155,13 +195,16 @@ def index():
         nova_tarefa = Tarefa(
             descricao=descricao,
             imagem=nome_imagem,
-            grupo_id=grupo_id
+            grupo_id=grupo_id,
+            usuario_id=current_user.id,  
+            ativa=True,
+            concluida=False
         )
 
         db.session.add(nova_tarefa)
         db.session.commit()
         return redirect("/")
-    
+
     tarefas = Tarefa.query.filter_by(grupo_id=grupo_id, ativa=True).order_by(Tarefa.data_criacao).all()
     grupo = Grupo.query.get_or_404(grupo_id)
     membros = Usuario.query.filter_by(grupo_id=grupo_id).all()
@@ -176,11 +219,10 @@ def index():
     ).group_by(Usuario.id, Usuario.nome) \
     .order_by(func.count(Tarefa.id).desc()) \
     .all()
-    
+
     return render_template("index.html", tarefas=tarefas, grupo=grupo, membros=membros, grupo_id=grupo_id)
 
 # ENVIO DE IMAGENS
-
 @app.route("/imagem/<int:id>", methods=["POST"])
 def enviar_imagem(id):
     tarefa = Tarefa.query.get_or_404(id)
@@ -210,20 +252,21 @@ def enviar_imagem(id):
 def grupo():
     grupo = current_user.grupo
 
-    # Lista de membros do grupo atual
-    membros = Usuario.query.filter_by(grupo_id=grupo.id).all()
-
-    # Consulta para obter o ranking por número de tarefas concluídas
-    ranking = db.session.query(
-        Usuario.nome,
-        db.func.count(Tarefa.id).label('tarefas_concluidas')
-    ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
-     .filter(
-         Usuario.grupo_id == grupo.id,
-         Tarefa.concluida == True
-     ).group_by(Usuario.id, Usuario.nome) \
-     .order_by(db.desc('tarefas_concluidas')) \
+    # Ranking real com todos os membros (mesmo quem não concluiu nada)
+    membros = db.session.query(
+        Usuario,
+        func.count(Tarefa.id).label('tarefas_concluidas')
+    ).outerjoin(Tarefa, Tarefa.concluida_por == Usuario.id) \
+     .filter(Usuario.grupo_id == grupo.id) \
+     .group_by(Usuario.id) \
+     .order_by(func.count(Tarefa.id).desc()) \
      .all()
+
+     # Ranking só com nome e pontuação para usar na lista ordenada
+    ranking = [
+        (membro.nome, pontos)
+        for membro, pontos in membros
+    ]
 
     return render_template("grupo.html", grupo=grupo, membros=membros, ranking=ranking)
 
@@ -235,25 +278,19 @@ def ranking():
     inicio_semana, fim_semana = obter_limites_semana()
     agora = datetime.utcnow()
 
-    # Ranking da semana atual
+    # Ranking da semana atual (baseado em quem concluiu)
     ranking = db.session.query(
         Usuario.nome,
-        func.count(
-            case(
-                (Tarefa.concluida == True, 1)
-            )
-        ).label('tarefas_concluidas')
-    ).outerjoin(Tarefa, Tarefa.usuario_id == Usuario.id) \
-    .filter(Usuario.grupo_id == grupo_id) \
+        func.count(Tarefa.id).label('tarefas_concluidas')
+    ).outerjoin(Tarefa, Tarefa.concluida_por == Usuario.id) \
     .filter(
+        Usuario.grupo_id == grupo_id,
         Tarefa.concluida == True,
-        Tarefa.data_criacao >= inicio_semana,
-        Tarefa.data_criacao <= fim_semana
+        Tarefa.data_conclusao >= inicio_semana,
+        Tarefa.data_conclusao <= fim_semana
     ) \
     .group_by(Usuario.id, Usuario.nome) \
-    .order_by(func.count(
-        case((Tarefa.concluida == True, 1))
-    ).desc()) \
+    .order_by(func.count(Tarefa.id).desc()) \
     .all()
 
     # Cálculo da semana anterior
@@ -271,12 +308,12 @@ def ranking():
                 func.count(
                     case((Tarefa.concluida == True, 1))
                 ).label('tarefas_concluidas')
-            ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
+            ).join(Tarefa, Tarefa.concluida_por == Usuario.id) \
             .filter(
                 Usuario.grupo_id == grupo_id,
                 Tarefa.concluida == True,
-                Tarefa.data_criacao >= semana_anterior_inicio,
-                Tarefa.data_criacao <= semana_anterior_fim
+                Tarefa.data_conclusao >= semana_anterior_inicio,
+                Tarefa.data_conclusao <= semana_anterior_fim
             ) \
             .group_by(Usuario.id) \
             .all()
@@ -312,7 +349,7 @@ def historico():
     tarefas_por_usuario = db.session.query(
         Usuario.nome,
         func.count(Tarefa.id).label("tarefas_concluidas")
-    ).join(Tarefa) \
+    ).join(Tarefa, Tarefa.concluida_por == Usuario.id) \
     .filter(
         Usuario.grupo_id == grupo_id,
         Tarefa.concluida == True,
@@ -440,30 +477,34 @@ def ver_pedidos():
 
 
 # CONCLUIR, DELETAR E EDITAR TAREFAS
+from datetime import datetime
+
 @app.route("/concluir/<int:id>")
 @login_required
 def concluir(id):
     tarefa = Tarefa.query.get_or_404(id)
 
+    # Verifica se o usuário pertence ao mesmo grupo
+    if tarefa.grupo_id != current_user.grupo_id:
+        abort(403)
+
     # Se já está concluída
     if tarefa.concluida:
-        # Permite desmarcar apenas se foi o mesmo usuário que concluiu
-        if tarefa.usuario_id == current_user.id:
+        # Só quem concluiu pode desmarcar
+        if tarefa.concluida_por == current_user.id:
             tarefa.concluida = False
-            tarefa.usuario_id = None
+            tarefa.concluida_por = None
+            tarefa.data_conclusao = None  # limpa a data
             flash("Tarefa desmarcada com sucesso!")
         else:
             flash("Apenas quem concluiu a tarefa pode desmarcá-la.")
             return redirect("/")
     else:
-        # Se não está concluída e não está atribuída ou é do próprio usuário
-        if tarefa.usuario_id is None or tarefa.usuario_id == current_user.id:
-            tarefa.concluida = True
-            tarefa.usuario_id = current_user.id
-            flash("Tarefa concluída com sucesso!")
-        else:
-            flash("Essa tarefa já está atribuída a outro usuário.")
-            return redirect("/")
+        # Marca como concluída por quem clicou
+        tarefa.concluida = True
+        tarefa.concluida_por = current_user.id
+        tarefa.data_conclusao = datetime.utcnow()  # registra o momento
+        flash("Tarefa concluída com sucesso!")
 
     db.session.commit()
     return redirect("/")
@@ -484,14 +525,20 @@ def deletar(id):
     return redirect("/")
 
 @app.route('/editar/<int:id>', methods=["GET", "POST"])
+@login_required
 def editar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
+    # Verifica se o usuário atual é o criador da tarefa
+    if tarefa.usuario_id != current_user.id:
+        abort(403)  # Proibido
+
     if request.method == "POST":
-        tarefa.descricao = request.form["descricao"]
+        tarefa.descricao = request.form["descricao"].strip()
         nova_imagem = request.files.get("imagem")
 
         if nova_imagem and nova_imagem.filename != "":
+            # Se já existe uma imagem antiga, remove ela
             if tarefa.imagem:
                 caminho = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
                 if os.path.exists(caminho):
@@ -499,12 +546,13 @@ def editar(id):
 
             nome_imagem = secure_filename(nova_imagem.filename)
             nova_imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
-            tarefa.imagem = nome_imagem  
+            tarefa.imagem = nome_imagem
+
         db.session.commit()
+        flash("Tarefa editada com sucesso!")
         return redirect("/")
 
     return render_template("editar.html", tarefa=tarefa)
-
 
 # RANKING SEMANAL
 def obter_limites_semana():
@@ -548,6 +596,98 @@ def salvar_historico_semanal():
         db.session.add(historico)
 
     db.session.commit()
+
+# TAREFAS PADROES
+@app.route("/tarefas_diarias", methods=["GET", "POST"])
+@login_required
+def tarefas_diarias():
+    tarefas_pre_estabelecidas = [
+        "Lavar louça",
+        "Varrer a casa",
+        "Passar pano nos móveis",
+        "Lavar banheiro",
+        "Retirar lixos",
+        "Recolher roupa",
+        "Estender roupa",
+        "Colocar roupa para lavar",
+        "Arrumar o quarto",
+        "Guardar as roupas",
+        "Fazer comida",
+        "Fazer compras"
+    ]
+
+    if request.method == "POST":
+        # Tarefas selecionadas (pré-estabelecidas)
+        tarefas_selecionadas = request.form.getlist("tarefas")
+        
+        # Nova tarefa personalizada (input de texto)
+        nova_tarefa = request.form.get("nova_tarefa", "").strip()
+
+        # Adiciona tarefas selecionadas, se ainda não existirem
+        for descricao in tarefas_selecionadas:
+            existe = Tarefa.query.filter_by(
+                descricao=descricao,
+                grupo_id=current_user.grupo_id,
+                ativa=True
+            ).first()
+            if not existe:
+                nova = Tarefa(
+                    descricao=descricao,
+                    usuario_id=current_user.id,
+                    grupo_id=current_user.grupo_id,
+                    ativa=True,
+                    concluida=False
+                )
+                db.session.add(nova)
+
+        # Adiciona a nova tarefa personalizada, se não estiver nas pré-estabelecidas nem já no banco
+        if nova_tarefa and nova_tarefa not in tarefas_pre_estabelecidas:
+            existe_personalizada = Tarefa.query.filter_by(
+                descricao=nova_tarefa,
+                grupo_id=current_user.grupo_id,
+                ativa=True
+            ).first()
+            if not existe_personalizada:
+                nova = Tarefa(
+                    descricao=nova_tarefa,
+                    usuario_id=current_user.id,
+                    grupo_id=current_user.grupo_id,
+                    ativa=True,
+                    concluida=False
+                )
+                db.session.add(nova)
+
+        db.session.commit()
+        flash("Tarefas adicionadas com sucesso!")
+        return redirect(url_for("tarefas_diarias"))
+
+    return render_template("tarefas_diarias.html", tarefas=tarefas_pre_estabelecidas)
+
+# EXCLUIR TAREFA
+@app.route("/excluir_tarefa/<int:id>", methods=["POST"])
+@login_required
+def excluir_tarefa(id):
+    tarefa = Tarefa.query.get_or_404(id)
+
+    # Verifica se a tarefa pertence ao grupo do usuário logado
+    if tarefa.grupo_id != current_user.grupo_id:
+        abort(403)
+
+    # Impede a exclusão se a tarefa não tiver um dono definido
+    if tarefa.usuario_id is None:
+        flash("Essa tarefa padrão não pode ser excluída.")
+        return redirect(url_for("index"))
+
+    # Impede se o usuário atual não for o dono da tarefa (mesmo que tenha sido adicionada do tarefas_diarias)
+    if tarefa.usuario_id != current_user.id:
+        flash("Você não tem permissão para excluir esta tarefa.")
+        return redirect(url_for("index"))
+
+    # Marca como inativa ao invés de deletar
+    tarefa.ativa = False
+    db.session.commit()
+    flash("Tarefa excluída com sucesso.")
+    return redirect(url_for("index"))
 
 # CONFIGURACOES
 @app.route('/configuracoes', methods=["GET", "POST"])

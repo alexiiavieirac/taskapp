@@ -59,7 +59,7 @@ background-color: #c0392b;
 }
 
 .container {
-max-width: 800px;
+max-width: 600px;
 margin: 20px auto;
 background: white;
 padding: 20px;
@@ -197,3 +197,66 @@ background-color: #f1f1f1;
 .menu-opcoes:hover .menu-dropdown {
 display: block;
 }
+
+.tarefa-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f8f8;
+    padding: 2px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    width: 100%;              /* Garante que todos ocupem a largura máxima do container */
+    box-sizing: border-box;   /* Inclui padding e border no cálculo do width */
+  }
+  
+  .descricao {
+    font-size: 1rem;
+    color: #333;
+    flex: 1;
+  }
+  
+  .descricao.concluida {
+    text-decoration: line-through;
+    color: gray;
+  }
+  
+  .acoes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 90px;       /* Garante largura mínima */
+    height: 100%;          /* Alinha com o conteúdo verticalmente */
+    box-sizing: border-box;
+  }
+  
+  .acoes a,
+  .acoes button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    color: #444;
+  }
+  
+  .acoes a:hover,
+  .acoes button:hover {
+    color: #000;
+    transform: scale(1.1);
+  }
+  
+h1 {
+    text-align: center;
+}
+
+.container form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* espaço entre os inputs e botão */
+    margin: 20px auto; /* centraliza horizontalmente */
+  }
+  

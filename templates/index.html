@@ -49,11 +49,12 @@
         <div class="menu-dropdown">
             <nav>
                 <a href="{{ url_for('grupo') }}">👥 Grupo</a>
-              </nav>
+            </nav>
             <a href="{{ url_for('conexoes') }}">🔄 Conexões</a>
             <a href="{{ url_for('ver_pedidos') }}">📩 Pedidos</a>
             <a href="{{ url_for('ranking') }}">🏆 Ranking</a>
             <a href="{{ url_for('historico') }}">📅 Histórico</a>
+            <a href="{{ url_for('tarefas_diarias') }}">📝 Tarefas Diárias</a>
             <a href="{{ url_for('configuracoes') }}" onclick="toggleSettings()">⚙️ Configurações</a>
         </div>
     </div>
@@ -68,28 +69,30 @@
         </form>
 
         {% for tarefa in tarefas %}
-            <div class="tarefa">
-                <div class="tarefa-descricao {% if tarefa.concluida %}tarefa-concluida{% endif %}">
-                    {% if tarefa.concluida %}
-                        <s>{{ tarefa.descricao }}</s>
-                    {% else %}
-                        {{ tarefa.descricao }}
-                    {% endif %}
-                </div>
-
-                {% if tarefa.imagem %}
-                    <img src="{{ url_for('static', filename='uploads/' ~ tarefa.imagem) }}" alt="Imagem da tarefa">
+            <div class="tarefa-item">
+                <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
+                {% if tarefa.concluida %}
+                    <s>{{ tarefa.descricao }}</s>
+                {% else %}
+                    {{ tarefa.descricao }}
                 {% endif %}
-
-                <div class="tarefa-links">
-                    <a href="/concluir/{{ tarefa.id }}">
-                        {% if tarefa.concluida %}Desmarcar{% else %}Concluir{% endif %}
-                    </a>
-                    <a href="/editar/{{ tarefa.id }}">Editar</a>
-                    <a href="/deletar/{{ tarefa.id }}">Excluir</a>
+                </div>
+            
+                <div class="acoes">
+                <a href="/concluir/{{ tarefa.id }}">
+                    {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
+                </a>
+            
+                {% if tarefa.usuario_id == current_user.id %}
+                    <a href="{{ url_for('editar', id=tarefa.id) }}">✏️</a>
+                    <form action="{{ url_for('excluir_tarefa', id=tarefa.id) }}" method="POST">
+                    <button type="submit">🗑️</button>
+                    </form>
+                {% endif %}
                 </div>
             </div>
         {% endfor %}
+
     </div>
 </body>
 </html>

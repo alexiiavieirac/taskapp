@@ -17,13 +17,18 @@
     {% endwith %}
 
     <form method="POST" enctype="multipart/form-data">
-        <!-- Upload de imagem -->
-        <label for="avatar_file">Foto de perfil:</label><br>
-        <input type="file" name="avatar_file" accept="image/*"><br><br>
-    
+      <div class="upload-container">
+        <div class="upload-info">
+          <label for="avatar_file">Foto de perfil:</label><br>
+          <input type="file" name="avatar_file" accept="image/*">
+        </div>
+      
         {% if current_user.avatar %}
-            <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" width="100"><br><br>
+          <div class="avatar-preview">
+            <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" width="100">
+          </div>
         {% endif %}
+      </div>
 
         <!-- Nome -->
         <label for="nome">Nome:</label><br>
