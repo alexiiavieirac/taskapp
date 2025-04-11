@@ -2,22 +2,27 @@ import os
 import re
 from flask import Flask, abort, render_template, request, redirect, url_for, flash, session
 from flask.cli import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Conexao, HistoricoRanking, PedidoGrupo, PedidoSeguir, SolicitacaoGrupo, TarefaPadrao, db, Usuario, Grupo, Tarefa
+from models import Conexao, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
 
-# Configurações do Flask
+# =============================================
+# CONFIGURAÇÕES INICIAIS DO FLASK
+# =============================================
+
+# Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
+# Cria a instância do Flask
 app = Flask(__name__)
 
+# Configurações de e-mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -25,55 +30,102 @@ app.config['MAIL_USERNAME'] = 'lekacvieira@gmail.com'
 app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
 
+# Configurações gerais da aplicação
 app.config['SECRET_KEY'] = 'chave-super-secreta'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Inicializa db e migrate
+# =============================================
+# INICIALIZAÇÃO DE EXTENSÕES
+# =============================================
+
+# Inicializa banco de dados e migrações
 db.init_app(app)
 mail = Mail(app)
 migrate = Migrate(app, db)
 
-# Inicializa o LoginManager
+# Configurações do sistema de login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Serializador para tokens seguros
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# E-MAIL
-@app.route("/enviar-convite", methods=["POST"])
-@login_required
-def enviar_convite():
-    email_destino = request.form["email"]
-    usuario_convidado = Usuario.query.filter_by(email=email_destino).first()
-    
-    if not usuario_convidado:
-        flash("❌ Usuário não encontrado.", "danger")
-        return redirect(url_for("grupo"))
-    
-    token = s.dumps({"email": email_destino, "grupo_id": current_user.grupo_id})
+# =============================================
+# FUNÇÕES AUXILIARES
+# =============================================
 
-    link_aceite = url_for("aceitar_convite", token=token, _external=True)
+def obter_limites_semana():
+    # Retorna o início e fim da semana atual (domingo a sábado) 
+    hoje = datetime.utcnow()
+    # weekday() retorna 0 (segunda) até 6 (domingo)
+    dias_desde_domingo = (hoje.weekday() + 1) % 7  # transforma segunda=1 ... domingo=0
+    inicio_semana = hoje - timedelta(days=dias_desde_domingo)
+    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
+    return inicio_semana, fim_semana
 
-    msg = Message("Convite para entrar no grupo", recipients=[email_destino])
-    msg.body = f"Você foi convidado para entrar no grupo '{current_user.grupo.nome}'. Clique no link abaixo para aceitar:\n{link_aceite}"
-    mail.send(msg)
+# Função para salvar o histórico semanal
+def salvar_historico_semanal():
+    hoje = datetime.utcnow()
+    # Pega a semana passada (domingo a sábado)
+    inicio_semana = hoje - timedelta(days=hoje.weekday() + 8)
+    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
+    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
-    flash("✅ Convite enviado com sucesso!", "success")
-    return redirect(url_for("grupo"))
+    semana_label = inicio_semana.strftime("%Y-W%U")
 
-# LOGIN, REGISTRO E LOGOUT
+    ranking = db.session.query(
+        Usuario.id.label("usuario_id"),
+        Usuario.grupo_id,
+        func.count(Tarefa.id).label("tarefas_concluidas")
+    ).join(Tarefa, Tarefa.usuario_id == Usuario.id)\
+     .filter(
+        Tarefa.concluida == True,
+        Tarefa.data_conclusao >= inicio_semana,
+        Tarefa.data_conclusao <= fim_semana
+     ).group_by(Usuario.id, Usuario.grupo_id)\
+     .all()
 
-# Rota de erro para login
+    for registro in ranking:
+        historico = HistoricoRanking(
+            usuario_id=registro.usuario_id,
+            grupo_id=registro.grupo_id,
+            tarefas_concluidas=registro.tarefas_concluidas,
+            semana=semana_label
+        )
+        db.session.add(historico)
+
+    db.session.commit()
+
+# Função para validar a senha
+def validar_senha(senha):
+    # Verifica se a senha atende aos requisitos
+    if len(senha) < 8 or len(senha) > 15:
+        return False
+    if not re.search(r"[A-Z]", senha):  # Verifica se tem letra maiúscula
+        return False
+    if not re.search(r"[0-9]", senha):  # Verifica se tem número
+        return False
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):  # Verifica se tem caractere especial
+        return False
+    return True
+
+# =============================================
+# ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
+# =============================================
+
 @login_manager.user_loader
 def load_user(user_id):
+    # Callback para carregar o usuário a partir do ID na sessão
     return Usuario.query.get(int(user_id))
 
 # Rota de Registro
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    # Rota para registro de novos usuários
     if request.method == "POST":
         nome = request.form.get("nome")
         email = request.form.get("email")
@@ -112,22 +164,10 @@ def register():
 
     return render_template("register.html")
 
-# ROTA PARA SENHA
-def validar_senha(senha):
-    # Verifica se a senha atende aos requisitos
-    if len(senha) < 8 or len(senha) > 15:
-        return False
-    if not re.search(r"[A-Z]", senha):  # Verifica se tem letra maiúscula
-        return False
-    if not re.search(r"[0-9]", senha):  # Verifica se tem número
-        return False
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):  # Verifica se tem caractere especial
-        return False
-    return True
-
 # Rota de Login
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # Rota para login de usuários
     if request.method == "POST":
         email = request.form["email"]
         senha = request.form["senha"]
@@ -147,13 +187,14 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
+    # Rota para logout de usuários
     logout_user()
     flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('login'))
 
-
-
-# PARTE DA TAREFA E DAS IMAGENS
+# =============================================
+# ROTAS PRINCIPAIS (TAREFAS, GRUPO, RANKING)
+# =============================================
 
 # Rota de Entrar no Sistema
 @app.route('/', methods=["GET", "POST"])
@@ -221,30 +262,6 @@ def index():
     .all()
 
     return render_template("index.html", tarefas=tarefas, grupo=grupo, membros=membros, grupo_id=grupo_id)
-
-# ENVIO DE IMAGENS
-@app.route("/imagem/<int:id>", methods=["POST"])
-def enviar_imagem(id):
-    tarefa = Tarefa.query.get_or_404(id)
-    imagem = request.files.get("imagem")
-
-    if imagem and imagem.filename != "":
-        # Se já existe uma imagem antiga, deleta
-        if tarefa.imagem:
-            caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
-            if os.path.exists(caminho_antigo):
-                os.remove(caminho_antigo)
-
-        nome_imagem = secure_filename(imagem.filename)
-        imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
-        tarefa.imagem = nome_imagem
-        db.session.commit()
-
-    return redirect("/")
-
-
-
-# GRUPO, CONEXÕES E RANKING
 
 # Rota de Grupo - Mostrar os dados do grupo atual do usuário logado, incluindo: nome do grupo, lista de membros e ranking. 
 @app.route("/grupo")
@@ -332,255 +349,9 @@ def ranking():
 
     return render_template("ranking.html", ranking=ranking, tempo_restante=tempo_restante)
 
-@app.route("/historico")
-@login_required
-def historico():
-    grupo_id = current_user.grupo_id
-
-    data_str = request.args.get("data")
-    if data_str:
-        data = datetime.strptime(data_str, "%Y-%m-%d")
-    else:
-        data = datetime.utcnow()  # ou datetime.now() se usar horário local
-
-    inicio_dia = datetime(data.year, data.month, data.day)
-    fim_dia = inicio_dia + timedelta(days=1)
-
-    tarefas_por_usuario = db.session.query(
-        Usuario.nome,
-        func.count(Tarefa.id).label("tarefas_concluidas")
-    ).join(Tarefa, Tarefa.concluida_por == Usuario.id) \
-    .filter(
-        Usuario.grupo_id == grupo_id,
-        Tarefa.concluida == True,
-        Tarefa.data_criacao >= inicio_dia,
-        Tarefa.data_criacao < fim_dia
-    ).group_by(Usuario.id).order_by(func.count(Tarefa.id).desc()).all()
-
-    vencedor = tarefas_por_usuario[0].nome if tarefas_por_usuario else None
-
-    dia_anterior = (data - timedelta(days=1)).strftime("%Y-%m-%d")
-    proximo_dia = (data + timedelta(days=1)).strftime("%Y-%m-%d")
-
-    return render_template(
-        "historico.html",
-        historico=tarefas_por_usuario,
-        vencedor=vencedor,
-        data=data.strftime("%d/%m/%Y"),
-        dia_anterior=dia_anterior,
-        proximo_dia=proximo_dia
-    )
-
-# Rota de Adicionar-membro - Permitir que o usuário adicione um membro ao seu grupo informando o e-mail do usuário.
-@app.route("/adicionar-membro", methods=["POST"])
-@login_required
-def adicionar_membro():
-    email = request.form["email"]
-    membro = Usuario.query.filter_by(email=email).first()
-    if membro:
-        membro.grupo = current_user.grupo
-        db.session.commit()
-        flash("✅ Membro adicionado ao grupo com sucesso!", "success")
-    else:
-        flash("❌ Usuário não encontrado.", "danger")
-    return redirect(url_for("dashboard"))
-
-@app.route("/aceitar-convite/<token>")
-def aceitar_convite(token):
-    try:
-        data = s.loads(token, max_age=3600)  # Token expira em 1 hora
-        email = data["email"]
-        grupo_id = data["grupo_id"]
-
-        usuario = Usuario.query.filter_by(email=email).first()
-        grupo = Grupo.query.get(grupo_id)
-
-        if not usuario or not grupo:
-            flash("❌ Usuário ou grupo não encontrados.", "danger")
-            return redirect(url_for("login"))
-
-        usuario.grupo_id = grupo.id
-        db.session.commit()
-
-        flash(f"🎉 Você agora faz parte do grupo '{grupo.nome}'!", "success")
-        return redirect(url_for("login"))
-
-    except Exception as e:
-        print(e)
-        flash("❌ Link inválido ou expirado.", "danger")
-        return redirect(url_for("login"))
-
-# Rota de Conexões - Mostra tela com: nome do usuário que segue, pessoas que seguem o usuário, lista de usuários para seguir.
-@app.route("/conexoes")
-@login_required
-def conexoes():
-    seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
-    seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
-
-    # Excluir quem já sigo, quem já me mandou pedido, quem sou eu
-    ids_bloqueados = [c.seguido_id for c in seguindo] + [current_user.id]
-    pedidos_enviados = PedidoSeguir.query.filter_by(remetente_id=current_user.id).all()
-    ids_bloqueados += [p.destinatario_id for p in pedidos_enviados]
-
-    usuarios_disponiveis = Usuario.query.filter(~Usuario.id.in_(ids_bloqueados)).all()
-
-    return render_template(
-        "conexoes.html",
-        seguindo=seguindo,
-        seguidores=seguidores,
-        usuarios=usuarios_disponiveis,
-        pedidos_enviados=pedidos_enviados
-    )
-
-
-
-# Rotas de Seguir - Permitir que o usuário logado siga outro usuário.
-@app.route("/seguir/<int:usuario_id>")
-@login_required
-def seguir(usuario_id):
-    destinatario = Usuario.query.get_or_404(usuario_id)
-
-    # Verifica se já existe um pedido pendente
-    pedido_existente = PedidoSeguir.query.filter_by(
-        remetente_id=current_user.id,
-        destinatario_id=usuario_id,
-        status="pendente"
-    ).first()
-
-    if pedido_existente:
-        flash("Você já enviou um pedido para esse usuário.")
-        return redirect(url_for("conexoes"))
-
-    novo_pedido = PedidoSeguir(
-        remetente_id=current_user.id,
-        destinatario_id=usuario_id,
-        status="pendente"
-    )
-    db.session.add(novo_pedido)
-    db.session.commit()
-
-    flash("Pedido de seguir enviado!")
-    return redirect(url_for("conexoes"))
-
-# Rota de Entrar no Grupo - Enviar um pedido de entrada em um grupo específico.
-@app.route("/entrar_grupo/<int:grupo_id>")
-@login_required
-def entrar_grupo(grupo_id):
-    ja_enviado = SolicitacaoGrupo.query.filter_by(solicitante_id=current_user.id, grupo_id=grupo_id, status="pendente").first()
-    if not ja_enviado:
-        pedido = SolicitacaoGrupo(solicitante_id=current_user.id, grupo_id=grupo_id)
-        db.session.add(pedido)
-        db.session.commit()
-    flash("Pedido enviado com sucesso.")
-    return redirect(url_for("conexoes"))    
-
-# Rota de Pedidos - Aceitar uma solicitação de entrada no grupo feita por outro usuário.
-@app.route("/aceitar_pedido/<int:pedido_id>")
-@login_required
-def aceitar_pedido(pedido_id):
-    pedido = PedidoSeguir.query.get_or_404(pedido_id)
-    if pedido.destinatario_id != current_user.id:
-        flash("Você não pode aceitar este pedido.")
-        return redirect(url_for("conexoes"))
-
-    pedido.status = "aceito"
-
-    conexao = Conexao(
-        seguidor_id=pedido.remetente_id,
-        seguido_id=pedido.destinatario_id
-    )
-    db.session.add(conexao)
-    db.session.commit()
-
-    flash("Agora essa pessoa está te seguindo!")
-    return redirect(url_for("conexoes"))
-
-@app.route("/rejeitar_pedido/<int:pedido_id>")
-@login_required
-def rejeitar_pedido(pedido_id):
-    pedido = PedidoSeguir.query.get_or_404(pedido_id)
-    if pedido.destinatario_id != current_user.id:
-        flash("Você não pode rejeitar este pedido.")
-        return redirect(url_for("conexoes"))
-
-    db.session.delete(pedido)
-    db.session.commit()
-    flash("Pedido de seguimento rejeitado.")
-    return redirect(url_for("conexoes"))
-
-# Rota de Rejeitar Pedido - Listar todos os pedidos de entrada pendentes no grupo do usuário logado.
-@app.route("/pedidos")
-@login_required
-def ver_pedidos():
-    pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
-    return render_template('pedidos.html', pedidos=pedidos)
-
-# USUARIOS E CONEXOES
-@app.route('/pedidos')
-@login_required
-def pedidos():
-    pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
-    return render_template("pedidos.html", pedidos_recebidos=pedidos_recebidos)
-
-
-# Rota de Pedidos de Seguir - Enviar um pedido de seguimento para outro usuário.
-@app.route("/seguir/<int:usuario_id>")
-@login_required
-def pedir_seguir(usuario_id):
-    destinatario = Usuario.query.get_or_404(usuario_id)
-    
-    pedido_existente = PedidoSeguir.query.filter_by(
-        remetente_id=current_user.id,
-        destinatario_id=destinatario.id,
-        status='pendente'
-    ).first()
-
-    if not pedido_existente:
-        novo_pedido = PedidoSeguir(remetente_id=current_user.id, destinatario_id=destinatario.id)
-        db.session.add(novo_pedido)
-        db.session.commit()
-    
-    flash("Solicitação enviada!")
-    return redirect(url_for('conexoes'))
-
-# Rota para aceitar o pedido de seguimento
-@app.route("/aceitar_seguir/<int:pedido_id>")
-@login_required
-def aceitar_seguir(pedido_id):
-    pedido = PedidoSeguir.query.get_or_404(pedido_id)
-
-    if pedido.destinatario_id != current_user.id:
-        abort(403)
-
-    # Cria a conexão
-    conexao = Conexao(seguidor_id=pedido.remetente_id, seguido_id=pedido.destinatario_id)
-    db.session.add(conexao)
-
-    # Atualiza pedido
-    pedido.status = "aceito"
-    db.session.commit()
-
-    flash("Pedido aceito!", "success")
-    return redirect(url_for("pedidos"))
-
-# Rota para rejeitar o pedido de seguimento
-@app.route("/rejeitar_seguir/<int:pedido_id>")
-@login_required
-def rejeitar_seguir(pedido_id):
-    pedido = PedidoSeguir.query.get_or_404(pedido_id)
-
-    if pedido.destinatario_id != current_user.id:
-        abort(403)
-
-    pedido.status = "rejeitado"
-    db.session.commit()
-
-    flash("Pedido rejeitado.", "info")
-    return redirect(url_for("pedidos"))
-
-
-# CONCLUIR, DELETAR E EDITAR TAREFAS
-from datetime import datetime
+# =============================================
+# ROTAS DE GERENCIAMENTO DE TAREFAS
+# =============================================
 
 @app.route("/concluir/<int:id>")
 @login_required
@@ -657,49 +428,6 @@ def editar(id):
 
     return render_template("editar.html", tarefa=tarefa)
 
-# RANKING SEMANAL
-def obter_limites_semana():
-    hoje = datetime.utcnow()
-    # weekday() retorna 0 (segunda) até 6 (domingo)
-    dias_desde_domingo = (hoje.weekday() + 1) % 7  # transforma segunda=1 ... domingo=0
-    inicio_semana = hoje - timedelta(days=dias_desde_domingo)
-    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
-    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
-    return inicio_semana, fim_semana
-
-# SALVAR HISTORICO POR SEMANA
-def salvar_historico_semanal():
-    hoje = datetime.utcnow()
-    # Pega a semana passada (domingo a sábado)
-    inicio_semana = hoje - timedelta(days=hoje.weekday() + 8)
-    inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
-    fim_semana = inicio_semana + timedelta(days=6, hours=23, minutes=59, seconds=59)
-
-    semana_label = inicio_semana.strftime("%Y-W%U")
-
-    ranking = db.session.query(
-        Usuario.id.label("usuario_id"),
-        Usuario.grupo_id,
-        func.count(Tarefa.id).label("tarefas_concluidas")
-    ).join(Tarefa, Tarefa.usuario_id == Usuario.id)\
-     .filter(
-        Tarefa.concluida == True,
-        Tarefa.data_conclusao >= inicio_semana,
-        Tarefa.data_conclusao <= fim_semana
-     ).group_by(Usuario.id, Usuario.grupo_id)\
-     .all()
-
-    for registro in ranking:
-        historico = HistoricoRanking(
-            usuario_id=registro.usuario_id,
-            grupo_id=registro.grupo_id,
-            tarefas_concluidas=registro.tarefas_concluidas,
-            semana=semana_label
-        )
-        db.session.add(historico)
-
-    db.session.commit()
-
 # TAREFAS PADROES
 @app.route("/tarefas_diarias", methods=["GET", "POST"])
 @login_required
@@ -766,7 +494,25 @@ def tarefas_diarias():
 
     return render_template("tarefas_diarias.html", tarefas=tarefas_pre_estabelecidas)
 
-# EXCLUIR TAREFA
+@app.route("/imagem/<int:id>", methods=["POST"])
+def enviar_imagem(id):
+    tarefa = Tarefa.query.get_or_404(id)
+    imagem = request.files.get("imagem")
+
+    if imagem and imagem.filename != "":
+        # Se já existe uma imagem antiga, deleta
+        if tarefa.imagem:
+            caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
+            if os.path.exists(caminho_antigo):
+                os.remove(caminho_antigo)
+
+        nome_imagem = secure_filename(imagem.filename)
+        imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
+        tarefa.imagem = nome_imagem
+        db.session.commit()
+
+    return redirect("/")
+
 @app.route("/excluir_tarefa/<int:id>", methods=["POST"])
 @login_required
 def excluir_tarefa(id):
@@ -792,7 +538,277 @@ def excluir_tarefa(id):
     flash("Tarefa excluída com sucesso.")
     return redirect(url_for("index"))
 
-# CONFIGURACOES
+# =============================================
+# ROTAS DE GERENCIAMENTO DE GRUPO
+# =============================================
+
+@app.route("/enviar-convite", methods=["POST"])
+@login_required
+def enviar_convite():
+    email_destino = request.form["email"]
+    usuario_convidado = Usuario.query.filter_by(email=email_destino).first()
+    
+    if not usuario_convidado:
+        flash("❌ Usuário não encontrado.", "danger")
+        return redirect(url_for("grupo"))
+    
+    token = s.dumps({"email": email_destino, "grupo_id": current_user.grupo_id})
+
+    link_aceite = url_for("aceitar_convite", token=token, _external=True)
+
+    msg = Message("Convite para entrar no grupo", recipients=[email_destino])
+    msg.body = f"Você foi convidado para entrar no grupo '{current_user.grupo.nome}'. Clique no link abaixo para aceitar:\n{link_aceite}"
+    mail.send(msg)
+
+    flash("✅ Convite enviado com sucesso!", "success")
+    return redirect(url_for("grupo"))
+
+@app.route("/aceitar-convite/<token>")
+def aceitar_convite(token):
+    try:
+        data = s.loads(token, max_age=3600)  # Token expira em 1 hora
+        email = data["email"]
+        grupo_id = data["grupo_id"]
+
+        usuario = Usuario.query.filter_by(email=email).first()
+        grupo = Grupo.query.get(grupo_id)
+
+        if not usuario or not grupo:
+            flash("❌ Usuário ou grupo não encontrados.", "danger")
+            return redirect(url_for("login"))
+
+        usuario.grupo_id = grupo.id
+        db.session.commit()
+
+        flash(f"🎉 Você agora faz parte do grupo '{grupo.nome}'!", "success")
+        return redirect(url_for("login"))
+
+    except Exception as e:
+        print(e)
+        flash("❌ Link inválido ou expirado.", "danger")
+        return redirect(url_for("login"))
+    
+@app.route("/adicionar-membro", methods=["POST"])
+@login_required
+def adicionar_membro():
+    email = request.form["email"]
+    membro = Usuario.query.filter_by(email=email).first()
+    if membro:
+        membro.grupo = current_user.grupo
+        db.session.commit()
+        flash("✅ Membro adicionado ao grupo com sucesso!", "success")
+    else:
+        flash("❌ Usuário não encontrado.", "danger")
+    return redirect(url_for("dashboard"))
+
+# Rota de Entrar no Grupo - Enviar um pedido de entrada em um grupo específico.
+@app.route("/entrar_grupo/<int:grupo_id>")
+@login_required
+def entrar_grupo(grupo_id):
+    ja_enviado = SolicitacaoGrupo.query.filter_by(solicitante_id=current_user.id, grupo_id=grupo_id, status="pendente").first()
+    if not ja_enviado:
+        pedido = SolicitacaoGrupo(solicitante_id=current_user.id, grupo_id=grupo_id)
+        db.session.add(pedido)
+        db.session.commit()
+    flash("Pedido enviado com sucesso.")
+    return redirect(url_for("conexoes"))
+    
+# =============================================
+# ROTAS DE CONEXÕES ENTRE USUÁRIOS
+# =============================================
+
+@app.route("/conexoes")
+@login_required
+def conexoes():
+    seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
+    seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
+
+    # Excluir quem já sigo, quem já me mandou pedido, quem sou eu
+    ids_bloqueados = [c.seguido_id for c in seguindo] + [current_user.id]
+    pedidos_enviados = PedidoSeguir.query.filter_by(remetente_id=current_user.id).all()
+    ids_bloqueados += [p.destinatario_id for p in pedidos_enviados]
+
+    usuarios_disponiveis = Usuario.query.filter(~Usuario.id.in_(ids_bloqueados)).all()
+
+    return render_template(
+        "conexoes.html",
+        seguindo=seguindo,
+        seguidores=seguidores,
+        usuarios=usuarios_disponiveis,
+        pedidos_enviados=pedidos_enviados
+    )
+
+@app.route("/seguir/<int:usuario_id>")
+@login_required
+def seguir(usuario_id):
+    destinatario = Usuario.query.get_or_404(usuario_id)
+
+    # Verifica se já existe um pedido pendente
+    pedido_existente = PedidoSeguir.query.filter_by(
+        remetente_id=current_user.id,
+        destinatario_id=usuario_id,
+        status="pendente"
+    ).first()
+
+    if pedido_existente:
+        flash("Você já enviou um pedido para esse usuário.")
+        return redirect(url_for("conexoes"))
+
+    novo_pedido = PedidoSeguir(
+        remetente_id=current_user.id,
+        destinatario_id=usuario_id,
+        status="pendente"
+    )
+    db.session.add(novo_pedido)
+    db.session.commit()
+
+    flash("Pedido de seguir enviado!")
+    return redirect(url_for("conexoes"))
+
+@app.route("/aceitar_pedido/<int:pedido_id>")
+@login_required
+def aceitar_pedido(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+    if pedido.destinatario_id != current_user.id:
+        flash("Você não pode aceitar este pedido.")
+        return redirect(url_for("conexoes"))
+
+    pedido.status = "aceito"
+
+    conexao = Conexao(
+        seguidor_id=pedido.remetente_id,
+        seguido_id=pedido.destinatario_id
+    )
+    db.session.add(conexao)
+    db.session.commit()
+
+    flash("Agora essa pessoa está te seguindo!")
+    return redirect(url_for("conexoes"))
+
+@app.route("/rejeitar_pedido/<int:pedido_id>")
+@login_required
+def rejeitar_pedido(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+    if pedido.destinatario_id != current_user.id:
+        flash("Você não pode rejeitar este pedido.")
+        return redirect(url_for("conexoes"))
+
+    db.session.delete(pedido)
+    db.session.commit()
+    flash("Pedido de seguimento rejeitado.")
+    return redirect(url_for("conexoes"))
+
+@app.route("/pedidos")
+@login_required
+def ver_pedidos():
+    pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
+    return render_template('pedidos.html', pedidos=pedidos)
+
+# USUARIOS E CONEXOES
+@app.route('/pedidos')
+@login_required
+def pedidos():
+    pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
+    return render_template("pedidos.html", pedidos_recebidos=pedidos_recebidos)
+
+# Rota de Pedidos de Seguir - Enviar um pedido de seguimento para outro usuário.
+@app.route("/seguir/<int:usuario_id>")
+@login_required
+def pedir_seguir(usuario_id):
+    destinatario = Usuario.query.get_or_404(usuario_id)
+    
+    pedido_existente = PedidoSeguir.query.filter_by(
+        remetente_id=current_user.id,
+        destinatario_id=destinatario.id,
+        status='pendente'
+    ).first()
+
+    if not pedido_existente:
+        novo_pedido = PedidoSeguir(remetente_id=current_user.id, destinatario_id=destinatario.id)
+        db.session.add(novo_pedido)
+        db.session.commit()
+    
+    flash("Solicitação enviada!")
+    return redirect(url_for('conexoes'))
+
+# Rota para aceitar o pedido de seguimento
+@app.route("/aceitar_seguir/<int:pedido_id>")
+@login_required
+def aceitar_seguir(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+
+    if pedido.destinatario_id != current_user.id:
+        abort(403)
+
+    # Cria a conexão
+    conexao = Conexao(seguidor_id=pedido.remetente_id, seguido_id=pedido.destinatario_id)
+    db.session.add(conexao)
+
+    # Atualiza pedido
+    pedido.status = "aceito"
+    db.session.commit()
+
+    flash("Pedido aceito!", "success")
+    return redirect(url_for("pedidos"))
+
+# Rota para rejeitar o pedido de seguimento
+@app.route("/rejeitar_seguir/<int:pedido_id>")
+@login_required
+def rejeitar_seguir(pedido_id):
+    pedido = PedidoSeguir.query.get_or_404(pedido_id)
+
+    if pedido.destinatario_id != current_user.id:
+        abort(403)
+
+    pedido.status = "rejeitado"
+    db.session.commit()
+
+    flash("Pedido rejeitado.", "info")
+    return redirect(url_for("pedidos"))
+
+# =============================================
+# ROTAS ADICIONAIS (HISTÓRICO, CONFIGURAÇÕES)
+# =============================================
+
+@app.route("/historico")
+@login_required
+def historico():
+    grupo_id = current_user.grupo_id
+
+    data_str = request.args.get("data")
+    if data_str:
+        data = datetime.strptime(data_str, "%Y-%m-%d")
+    else:
+        data = datetime.utcnow()  # ou datetime.now() se usar horário local
+
+    inicio_dia = datetime(data.year, data.month, data.day)
+    fim_dia = inicio_dia + timedelta(days=1)
+
+    tarefas_por_usuario = db.session.query(
+        Usuario.nome,
+        func.count(Tarefa.id).label("tarefas_concluidas")
+    ).join(Tarefa, Tarefa.concluida_por == Usuario.id) \
+    .filter(
+        Usuario.grupo_id == grupo_id,
+        Tarefa.concluida == True,
+        Tarefa.data_criacao >= inicio_dia,
+        Tarefa.data_criacao < fim_dia
+    ).group_by(Usuario.id).order_by(func.count(Tarefa.id).desc()).all()
+
+    vencedor = tarefas_por_usuario[0].nome if tarefas_por_usuario else None
+
+    dia_anterior = (data - timedelta(days=1)).strftime("%Y-%m-%d")
+    proximo_dia = (data + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    return render_template(
+        "historico.html",
+        historico=tarefas_por_usuario,
+        vencedor=vencedor,
+        data=data.strftime("%d/%m/%Y"),
+        dia_anterior=dia_anterior,
+        proximo_dia=proximo_dia
+    )
+
 @app.route('/configuracoes', methods=["GET", "POST"])
 @login_required
 def configuracoes():
@@ -815,6 +831,10 @@ def configuracoes():
         return redirect(url_for('configuracoes'))
 
     return render_template("configuracoes.html")
+
+# =============================================
+# INICIALIZAÇÃO DA APLICAÇÃO
+# =============================================
 
 if __name__ == "__main__":
     with app.app_context():
