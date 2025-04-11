@@ -11,9 +11,9 @@ seguidores = db.Table(
     db.Column('seguido_id', db.Integer, db.ForeignKey('usuario.id'))
 )
 
-# -------------------------------
+# =============================================
 # MODELO: Grupo
-# -------------------------------
+# =============================================
 class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), unique=True, nullable=False)
@@ -28,9 +28,9 @@ class Grupo(db.Model):
     )
 
 
-# -------------------------------
+# =============================================
 # MODELO: Usuário
-# -------------------------------
+# =============================================
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuario'
 
@@ -67,9 +67,9 @@ class Usuario(UserMixin, db.Model):
         ).count() > 0
 
 
-# -------------------------------
+# =============================================
 # MODELO: Conexão entre usuários (seguidores/seguidos)
-# -------------------------------
+# =============================================
 class Conexao(db.Model):
     seguidor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
     seguido_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
@@ -78,9 +78,9 @@ class Conexao(db.Model):
     seguido = db.relationship('Usuario', foreign_keys=[seguido_id], back_populates='seguidores_conexoes')
 
 
-# -------------------------------
+# =============================================
 # MODELO: Pedido de seguir outro usuário
-# -------------------------------
+# =============================================
 class PedidoSeguir(db.Model):
     __tablename__ = 'pedido_seguir'
 
@@ -93,9 +93,9 @@ class PedidoSeguir(db.Model):
     destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos')
 
 
-# -------------------------------
+# =============================================
 # MODELO: Convite de grupo enviado por e-mail
-# -------------------------------
+# =============================================
 class ConviteGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email_convidado = db.Column(db.String(120), nullable=False)
@@ -105,9 +105,9 @@ class ConviteGrupo(db.Model):
     data_envio = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# -------------------------------
+# =============================================
 # MODELO: Pedido para entrar em um grupo
-# -------------------------------
+# =============================================
 class PedidoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
@@ -117,9 +117,9 @@ class PedidoGrupo(db.Model):
     usuario = db.relationship('Usuario', backref='pedidos_grupo')
 
 
-# -------------------------------
+# =============================================
 # MODELO: Solicitação genérica para grupo (caso seja diferente do PedidoGrupo)
-# -------------------------------
+# =============================================
 class SolicitacaoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     solicitante_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
@@ -127,9 +127,9 @@ class SolicitacaoGrupo(db.Model):
     status = db.Column(db.String(20), default='pendente')
 
 
-# -------------------------------
+# =============================================
 # MODELO: Histórico de ranking semanal do grupo
-# -------------------------------
+# =============================================
 class HistoricoRanking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
@@ -142,18 +142,18 @@ class HistoricoRanking(db.Model):
     grupo = db.relationship('Grupo')
 
 
-# -------------------------------
+# =============================================
 # MODELO: Tarefa Padrão (modelo reutilizável)
-# -------------------------------
+# =============================================
 class TarefaPadrao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descricao = db.Column(db.String(200), nullable=False)
     imagem = db.Column(db.String(200))
 
 
-# -------------------------------
+# =============================================
 # MODELO: Tarefa (criada por um usuário para o grupo)
-# -------------------------------
+# =============================================
 class Tarefa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descricao = db.Column(db.String(120), nullable=False)

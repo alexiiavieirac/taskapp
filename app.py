@@ -5,12 +5,13 @@ from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import Conexao, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
-from datetime import datetime, timedelta
+from models import Conexao, ConviteGrupo, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
+from datetime import datetime, timedelta, timezone
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
+from functools import wraps
 
 # =============================================
 # CONFIGURAÇÕES INICIAIS DO FLASK
@@ -112,6 +113,15 @@ def validar_senha(senha):
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):  # Verifica se tem caractere especial
         return False
     return True
+
+# Middleware para verificar se o usuário já tem grupo
+def grupo_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.grupo_id is None:
+            return redirect(url_for('criar_grupo'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
@@ -560,6 +570,14 @@ def enviar_convite():
     msg.body = f"Você foi convidado para entrar no grupo '{current_user.grupo.nome}'. Clique no link abaixo para aceitar:\n{link_aceite}"
     mail.send(msg)
 
+    convite = ConviteGrupo(
+        email_convidado=email_destino,
+        grupo_id=current_user.grupo_id,
+        token=token
+    )
+    db.session.add(convite)
+    db.session.commit()
+
     flash("✅ Convite enviado com sucesso!", "success")
     return redirect(url_for("grupo"))
 
@@ -612,7 +630,27 @@ def entrar_grupo(grupo_id):
         db.session.commit()
     flash("Pedido enviado com sucesso.")
     return redirect(url_for("conexoes"))
-    
+
+@app.route("/criar-grupo", methods=["GET", "POST"])
+@login_required
+def criar_grupo():
+    if current_user.grupo_id:
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        nome_grupo = request.form["nome"]
+        grupo = Grupo(nome=nome_grupo, proprietario_id=current_user.id)
+        db.session.add(grupo)
+        db.session.commit()
+
+        current_user.grupo_id = grupo.id
+        db.session.commit()
+
+        flash("✅ Grupo criado com sucesso!", "success")
+        return redirect(url_for("convidar_para_grupo"))
+
+    return render_template("criar_grupo.html")
+
 # =============================================
 # ROTAS DE CONEXÕES ENTRE USUÁRIOS
 # =============================================
@@ -775,14 +813,20 @@ def rejeitar_seguir(pedido_id):
 def historico():
     grupo_id = current_user.grupo_id
 
+    # Fuso horário local
+    fuso = timezone(timedelta(hours=-3))
+
+    # Usa data fornecida ou data atual no fuso local
     data_str = request.args.get("data")
     if data_str:
         data = datetime.strptime(data_str, "%Y-%m-%d")
+        data = fuso.localize(data)
     else:
-        data = datetime.utcnow()  # ou datetime.now() se usar horário local
+        data = datetime.now(fuso)
 
-    inicio_dia = datetime(data.year, data.month, data.day)
-    fim_dia = inicio_dia + timedelta(days=1)
+    # Define início e fim do dia com precisão
+    inicio_dia = datetime(data.year, data.month, data.day, 0, 0, 0, tzinfo=fuso)
+    fim_dia = datetime(data.year, data.month, data.day, 23, 59, 59, 999999, tzinfo=fuso)
 
     tarefas_por_usuario = db.session.query(
         Usuario.nome,
@@ -792,7 +836,7 @@ def historico():
         Usuario.grupo_id == grupo_id,
         Tarefa.concluida == True,
         Tarefa.data_criacao >= inicio_dia,
-        Tarefa.data_criacao < fim_dia
+        Tarefa.data_criacao <= fim_dia
     ).group_by(Usuario.id).order_by(func.count(Tarefa.id).desc()).all()
 
     vencedor = tarefas_por_usuario[0].nome if tarefas_por_usuario else None
