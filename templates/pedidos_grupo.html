@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedidos de Entrada</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pedidos.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>📨 Pedidos de entrada no seu grupo:</h2>
+    
+        <ul>
+            {% for pedido in pedidos_recebidos %}
+              <li>
+                {{ pedido.remetente.nome }}
+                <a href="{{ url_for('aceitar_seguir', pedido_id=pedido.id) }}">Aceitar</a>
+                <a href="{{ url_for('rejeitar_seguir', pedido_id=pedido.id) }}">Rejeitar</a>
+              </li>
+            {% else %}
+              <li>Nenhum pedido recebido.</li>
+            {% endfor %}
+        </ul>
+</body>
+</html>

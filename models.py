@@ -21,7 +21,7 @@ class Grupo(db.Model):
     usuarios = db.relationship('Usuario', backref='grupo', lazy=True)
     tarefas = db.relationship('Tarefa', backref='grupo', lazy=True)
     convites = db.relationship('ConviteGrupo', backref='grupo', lazy=True)
-    pedidos = db.relationship('PedidoGrupo', backref='grupo', lazy=True)
+    pedidos = db.relationship('SolicitacaoGrupo', backref='grupo', lazy=True)
 
     __table_args__ = (
         db.UniqueConstraint('nome', name='uq_grupo_nome'),
@@ -106,19 +106,7 @@ class ConviteGrupo(db.Model):
 
 
 # =============================================
-# MODELO: Pedido para entrar em um grupo
-# =============================================
-class PedidoGrupo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
-    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
-    status = db.Column(db.String(20), default='pendente')
-
-    usuario = db.relationship('Usuario', backref='pedidos_grupo')
-
-
-# =============================================
-# MODELO: Solicitação genérica para grupo (caso seja diferente do PedidoGrupo)
+# MODELO: Solicitação genérica para grupo
 # =============================================
 class SolicitacaoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -126,6 +114,7 @@ class SolicitacaoGrupo(db.Model):
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
     status = db.Column(db.String(20), default='pendente')
 
+    usuario = db.relationship('Usuario', backref='pedidos_grupo')
 
 # =============================================
 # MODELO: Histórico de ranking semanal do grupo
