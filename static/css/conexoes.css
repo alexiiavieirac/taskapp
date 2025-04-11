@@ -131,3 +131,61 @@ a:hover {
     padding: 12px;
   }
 }
+
+.btn-aceitar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-aceitar:hover {
+  background-color: #218838;
+}
+
+.btn-recusar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.btn-recusar:hover {
+  background-color: #c82333;
+}
+
+.btn-entrar-grupo {
+  margin-left: 1rem;
+  background-color: #198754;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-parar-seguir {
+  margin-left: 1rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-entrar-grupo:hover {
+  background-color: #157347;
+}
+
+.btn-parar-seguir:hover {
+  background-color: #bb2d3b;
+}

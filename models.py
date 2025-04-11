@@ -38,7 +38,7 @@ class Usuario(UserMixin, db.Model):
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
-    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=True)
 
     avatar = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)

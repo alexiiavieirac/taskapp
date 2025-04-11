@@ -80,6 +80,11 @@ background-color: #f9f9f9;
 margin-top: 20px;
 padding: 12px;
 border-radius: 8px;
+
+display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .tarefa-links {
@@ -260,3 +265,120 @@ h1 {
     margin: 20px auto; /* centraliza horizontalmente */
   }
   
+  .notificacao-badge {
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    margin-left: 5px;
+    position: relative;
+    top: -5px;
+}
+
+.notificacao-label {
+    background-color: #ff5252;
+    color: white;
+    border-radius: 12px;
+    padding: 1px 6px;
+    font-size: 0.75rem;
+    margin-left: 6px;
+}
+
+.imagem-container {
+  display: inline-block;
+  position: relative;
+  margin-left: 10px;
+  margin-top: 10px;
+  vertical-align: middle;
+}
+
+.tarefa-imagem-wrapper {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+}
+
+.tarefa-imagem:hover {
+  transform: scale(1.2);
+}
+
+.botao-remover-imagem {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tarefa-imagem-wrapper:hover .botao-remover-imagem {
+  display: flex;
+}
+
+.botao-imagem {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
+  font-size: 1.2rem;
+}
+
+.botao-imagem:hover {
+  color: #000000;
+}
+
+.tarefa-imagem {
+  max-width: 90px;
+  height: auto;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+  margin-top: 30px;
+  margin-bottom: -10px;
+}
+
+.tarefa-imagem:hover {
+  transform: scale(1.2);
+}
+
+.botao-remover-imagem {
+  position: absolute;
+  top: 20px;
+  right: -10px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+}
+
+.tarefa-imagem-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tarefa-imagem-container:hover .botao-remover-imagem {
+  display: flex;
+}
+
+.botao-imagem {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.botao-imagem:hover {
+  color: #0056b3;
+}

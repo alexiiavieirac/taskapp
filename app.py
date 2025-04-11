@@ -123,6 +123,9 @@ def grupo_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def is_following(self, usuario):
+    return self.seguindo_conexoes.filter_by(seguido_id=usuario.id).first() is not None
+
 # =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
 # =============================================
@@ -271,7 +274,30 @@ def index():
     .order_by(func.count(Tarefa.id).desc()) \
     .all()
 
-    return render_template("index.html", tarefas=tarefas, grupo=grupo, membros=membros, grupo_id=grupo_id)
+    # ======================================
+    # Notificações (Pedidos pendentes)
+    # ======================================
+    pedidos_seguir = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").count()
+    pedidos_grupo = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").count()
+    conexoes = Conexao.query.filter_by(seguido_id=current_user.id).count()  # ou lógica desejada
+
+    notificacoes = {
+        "grupo": pedidos_grupo,
+        "seguidores": pedidos_seguir,
+        "conexoes": conexoes
+    }
+
+    total_notificacoes = sum(notificacoes.values())
+
+    return render_template(
+        "index.html",
+        tarefas=tarefas,
+        grupo=grupo,
+        membros=membros,
+        grupo_id=grupo_id,
+        notificacoes=notificacoes,
+        total_notificacoes=total_notificacoes
+    )
 
 # Rota de Grupo - Mostrar os dados do grupo atual do usuário logado, incluindo: nome do grupo, lista de membros e ranking. 
 @app.route("/grupo")
@@ -305,7 +331,7 @@ def ranking():
     inicio_semana, fim_semana = obter_limites_semana()
     agora = datetime.utcnow()
 
-    # Ranking da semana atual (baseado em quem concluiu)
+    # Ranking da semana atual (baseado em quem concluiu corretamente)
     ranking = db.session.query(
         Usuario.nome,
         func.count(Tarefa.id).label('tarefas_concluidas')
@@ -313,6 +339,7 @@ def ranking():
     .filter(
         Usuario.grupo_id == grupo_id,
         Tarefa.concluida == True,
+        Tarefa.data_conclusao != None,  # Garante que tem data válida
         Tarefa.data_conclusao >= inicio_semana,
         Tarefa.data_conclusao <= fim_semana
     ) \
@@ -339,6 +366,7 @@ def ranking():
             .filter(
                 Usuario.grupo_id == grupo_id,
                 Tarefa.concluida == True,
+                Tarefa.data_conclusao != None,  # Também exige data válida
                 Tarefa.data_conclusao >= semana_anterior_inicio,
                 Tarefa.data_conclusao <= semana_anterior_fim
             ) \
@@ -523,6 +551,23 @@ def enviar_imagem(id):
 
     return redirect("/")
 
+@app.route('/remover-imagem/<int:id>', methods=["POST"])
+@login_required
+def remover_imagem(id):
+    tarefa = Tarefa.query.get_or_404(id)
+    
+    if tarefa.usuario_id != current_user.id:
+        abort(403)  # Não autorizado
+
+    if tarefa.imagem:
+        caminho_imagem = os.path.join(app.config['UPLOAD_FOLDER'], tarefa.imagem)
+        if os.path.exists(caminho_imagem):
+            os.remove(caminho_imagem)
+        tarefa.imagem = None
+        db.session.commit()
+    
+    return redirect(url_for('index'))
+
 @app.route("/excluir_tarefa/<int:id>", methods=["POST"])
 @login_required
 def excluir_tarefa(id):
@@ -661,11 +706,18 @@ def conexoes():
     seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
     seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
 
-    # Excluir quem já sigo, quem já me mandou pedido, quem sou eu
-    ids_bloqueados = [c.seguido_id for c in seguindo] + [current_user.id]
-    pedidos_enviados = PedidoSeguir.query.filter_by(remetente_id=current_user.id).all()
+    # Excluir quem já sigo e eu mesmo
+    ids_bloqueados = [c.seguido_id for c in seguindo]
+    ids_bloqueados.append(current_user.id)
+
+    # Considerar somente pedidos pendentes
+    pedidos_enviados = PedidoSeguir.query.filter_by(
+        remetente_id=current_user.id,
+        status='pendente'  # só bloqueia quem está com pedido pendente
+    ).all()
     ids_bloqueados += [p.destinatario_id for p in pedidos_enviados]
 
+    # Lista final de usuários disponíveis para seguir
     usuarios_disponiveis = Usuario.query.filter(~Usuario.id.in_(ids_bloqueados)).all()
 
     return render_template(
@@ -737,7 +789,7 @@ def aceitar_seguir(pedido_id):
     db.session.commit()
 
     flash("Pedido aceito!", "success")
-    return redirect(url_for("pedidos"))
+    return redirect(url_for("pedidos_seguir"))
 
 # Rota para rejeitar o pedido de seguimento
 @app.route("/rejeitar_seguir/<int:pedido_id>")
@@ -765,12 +817,118 @@ def rejeitar_seguir(pedido_id):
     origem = request.args.get("origem", "pedidos")
     return redirect(url_for(origem))
 
+@app.route('/parar_de_seguir/<int:usuario_id>', methods=['POST'])
+@login_required
+def parar_de_seguir(usuario_id):
+    usuario_alvo = Usuario.query.get_or_404(usuario_id)
+
+    conexao = Conexao.query.filter_by(
+        seguidor_id=current_user.id,
+        seguido_id=usuario_id
+    ).first()
+
+    if conexao:
+        db.session.delete(conexao)
+
+        # Se ele está no mesmo grupo da pessoa seguida, remove do grupo
+        if current_user.grupo_id == usuario_alvo.grupo_id:
+            current_user.grupo_id = None
+
+        db.session.commit()
+        flash('Você parou de seguir e saiu do grupo.', 'info')
+    else:
+        flash('Você não segue essa pessoa.', 'warning')
+
+    return redirect(url_for('conexoes'))
+
 # Pedidos para entrar no grupo
 @app.route("/pedidos_grupo")
 @login_required
 def pedidos_grupo():
+    grupo = current_user.grupo
+
+    if not current_user.grupo_id:
+        flash("Você não está em um grupo.")
+        return redirect(url_for("index"))
+
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
     return render_template('pedidos_grupo.html', pedidos=pedidos)
+
+@app.route('/solicitar_entrada_grupo/<int:usuario_id>', methods=['POST'])
+@login_required
+def solicitar_entrada_grupo(usuario_id):
+    usuario_alvo = Usuario.query.get_or_404(usuario_id)
+
+    # Verifica se o usuário atual segue o usuário alvo
+    conexao = Conexao.query.filter_by(
+        seguidor_id=current_user.id,
+        seguido_id=usuario_alvo.id
+    ).first()
+
+    if not conexao:
+        flash("Você precisa seguir esse usuário antes de solicitar entrada no grupo.", "warning")
+        return redirect(url_for("conexoes"))
+
+    # Verifica se o usuário alvo tem um grupo
+    if not usuario_alvo.grupo_id:
+        flash("Este usuário não faz parte de um grupo.", "danger")
+        return redirect(url_for("conexoes"))
+
+    # Verifica se já existe uma solicitação pendente
+    ja_existe = SolicitacaoGrupo.query.filter_by(
+        solicitante_id=current_user.id,
+        grupo_id=usuario_alvo.grupo_id,
+        status="pendente"
+    ).first()
+
+    if ja_existe:
+        flash("Você já solicitou entrada neste grupo.", "info")
+        return redirect(url_for("conexoes"))
+
+    nova_solicitacao = SolicitacaoGrupo(
+        solicitante_id=current_user.id,
+        grupo_id=usuario_alvo.grupo_id
+    )
+    db.session.add(nova_solicitacao)
+    db.session.commit()
+
+    flash("Solicitação enviada com sucesso!", "success")
+    return redirect(url_for("conexoes"))
+
+@app.route('/aceitar_pedido_grupo/<int:pedido_id>', methods=['POST'])
+@login_required
+def aceitar_pedido_grupo(pedido_id):
+    pedido = SolicitacaoGrupo.query.get_or_404(pedido_id)
+    grupo = current_user.grupo
+
+    # Verifica se o grupo é o mesmo
+    if not grupo or pedido.grupo_id != grupo.id:
+        flash("Você não pode aceitar esse pedido.", "danger")
+        return redirect(url_for('pedidos_grupo'))
+
+    # Atualiza status e atribui grupo ao solicitante
+    pedido.status = 'aceito'
+    solicitante = Usuario.query.get(pedido.solicitante_id)
+    solicitante.grupo_id = grupo.id
+
+    db.session.commit()
+    flash("Pedido aceito! Usuário agora faz parte do grupo.", "success")
+    return redirect(url_for('pedidos_grupo'))
+
+@app.route('/recusar_pedido_grupo/<int:pedido_id>', methods=['POST'])
+@login_required
+def recusar_pedido_grupo(pedido_id):
+    pedido = SolicitacaoGrupo.query.get_or_404(pedido_id)
+    grupo = current_user.grupo
+
+    if not grupo or pedido.grupo_id != grupo.id:
+        flash("Você não pode recusar esse pedido.", "danger")
+        return redirect(url_for('pedidos_grupo'))
+
+    pedido.status = 'recusado'
+    db.session.commit()
+    flash("Pedido recusado com sucesso.", "warning")
+    return redirect(url_for('pedidos_grupo'))
 
 # Pedidos para seguir o usuário
 @app.route('/pedidos_seguir')

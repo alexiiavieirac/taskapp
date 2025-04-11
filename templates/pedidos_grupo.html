@@ -8,18 +8,38 @@
 </head>
 <body>
     <div class="container">
-        <h2>📨 Pedidos de entrada no seu grupo:</h2>
-    
+      <h2>📩 Pedidos para entrar no grupo</h2>
         <ul>
-            {% for pedido in pedidos_recebidos %}
-              <li>
-                {{ pedido.remetente.nome }}
-                <a href="{{ url_for('aceitar_seguir', pedido_id=pedido.id) }}">Aceitar</a>
-                <a href="{{ url_for('rejeitar_seguir', pedido_id=pedido.id) }}">Rejeitar</a>
-              </li>
-            {% else %}
-              <li>Nenhum pedido recebido.</li>
-            {% endfor %}
+          {% for pedido in pedidos %}
+            <li>
+              {{ pedido.usuario.nome }}
+              <form method="POST" action="{{ url_for('aceitar_pedido_grupo', pedido_id=pedido.id) }}" style="display: inline;">
+                <button type="submit" class="btn-aceitar">Aceitar</button>
+              </form>
+              
+              <form method="POST" action="{{ url_for('recusar_pedido_grupo', pedido_id=pedido.id) }}" style="display: inline;">
+                <button type="submit" class="btn-recusar">Recusar</button>
+              </form>
+            </li>
+          {% else %}
+            <li>Nenhum pedido por enquanto.</li>
+          {% endfor %}
         </ul>
+
+        <div style="text-align: center; margin-top: 2rem;">
+          <a href="{{ url_for('index') }}" style="
+              display: inline-block;
+              padding: 0.75rem 1.5rem;
+              background-color: #007bff;
+              color: white;
+              text-decoration: none;
+              border-radius: 8px;
+              font-weight: bold;
+              transition: background-color 0.3s ease;
+          " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+              ⬅️ Voltar para o início
+          </a>
+        </div>
+    </div>
 </body>
 </html>

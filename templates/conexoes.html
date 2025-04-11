@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -8,13 +8,40 @@
 </head>
 <body>
   <div class="container">
-        <h2>👥 Minhas Conexões</h2>
+    <h2>👥 Minhas Conexões</h2>
 
-        <h3>👤 Quem eu sigo</h3>
+    <h3>👤 Quem eu sigo</h3>
     <ul>
       {% for c in seguindo %}
-        <li>{{ c.seguido.nome }} - ID: {{ c.seguido_id }}</li>
-      {% endfor %}
+      <li style="margin-bottom: 1.5rem;">
+        {{ c.seguido.nome }} - ID: {{ c.seguido_id }}
+
+        {% if c.seguido.grupo_id %}
+          {% if current_user.grupo_id == c.seguido.grupo_id %}
+            <span style="margin-left: 1rem; color: green;">(Você está no grupo)</span>
+          {% else %}
+            {% set pedido_existente = pedidos_enviados | selectattr("grupo_id", "equalto", c.seguido.grupo_id) | list %}
+            
+            {% if pedido_existente %}
+              <span style="margin-left: 1rem; color: orange;">(Pedido enviado)</span>
+            {% else %}
+              <form method="POST" action="{{ url_for('solicitar_entrada_grupo', usuario_id=c.seguido.id) }}" style="display: inline;">
+                <button type="submit" class="btn-entrar-grupo">Entrar no grupo</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        {% else %}
+          <span style="margin-left: 1rem; color: gray;">(Sem grupo)</span>
+        {% endif %}
+
+        <!-- Botão Parar de Seguir -->
+        <form method="POST" action="{{ url_for('parar_de_seguir', usuario_id=c.seguido.id) }}" style="display: inline;" onsubmit="return confirm('Deseja mesmo parar de seguir? Isso também removerá você do grupo dessa pessoa, se estiver.')">
+          <button type="submit" class="btn-parar-seguir">Parar de seguir</button>
+        </form>
+      </li>
+    {% endfor %}
+    </ul>
+    
     </ul>
 
     <h3>👣 Quem me segue</h3>
@@ -43,7 +70,20 @@
       {% endfor %}
     </ul>
 
-
+    <div style="text-align: center; margin-top: 2rem;">
+      <a href="{{ url_for('index') }}" style="
+          display: inline-block;
+          padding: 0.75rem 1.5rem;
+          background-color: #007bff;
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: bold;
+          transition: background-color 0.3s ease;
+      " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+          ⬅️ Voltar para o início
+      </a>
+    </div>
   </div>
 </body>
 </html>

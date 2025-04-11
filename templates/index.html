@@ -45,14 +45,31 @@
 
     <!-- Menu de Opções -->
     <div class="menu-opcoes">
-        <button class="menu-btn">☰ Menu</button>
-        <div class="menu-dropdown">
+        <!-- Ícone do menu com badge de notificação -->
+        <button class="menu-btn">
+            ☰ Menu
+            {% if total_notificacoes > 0 %}
+                <span class="notificacao-badge">{{ total_notificacoes }}</span>
+            {% endif %}
+        </button>
+
+        <div class="menu-dropdown dropdown" id="menuDropdown">
             <nav>
                 <a href="{{ url_for('grupo') }}">👥 Grupo</a>
             </nav>
             <a href="{{ url_for('conexoes') }}">🔄 Conexões</a>
-            <a href="{{ url_for('pedidos_grupo') }}">📩 Pedidos Grupo</a>
-            <a href="{{ url_for('pedidos_seguir') }}">📩 Pedidos</a>
+            <a href="{{ url_for('pedidos_grupo') }}">
+                📩 Pedidos Grupo
+                {% if notificacoes.grupo > 0 %}
+                    <span class="notificacao-label">{{ notificacoes.grupo }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('pedidos_seguir') }}">
+                📩 Pedidos
+                {% if notificacoes.seguidores > 0 %}
+                    <span class="notificacao-label">{{ notificacoes.seguidores }}</span>
+                {% endif %}
+            </a>
             <a href="{{ url_for('ranking') }}">🏆 Ranking</a>
             <a href="{{ url_for('historico') }}">📅 Histórico</a>
             <a href="{{ url_for('tarefas_diarias') }}">📝 Tarefas Diárias</a>
@@ -62,38 +79,63 @@
 
     <div class="container">
         <h1>Minhas Tarefas</h1>
-
+    
         <form method="POST" enctype="multipart/form-data">
             <input type="text" name="descricao" placeholder="Nova Tarefa" required>
             <input type="file" name="imagem" accept="image/*">
             <button type="submit">Adicionar</button>
         </form>
-
+    
         {% for tarefa in tarefas %}
-            <div class="tarefa-item">
-                <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
-                {% if tarefa.concluida %}
-                    <s>{{ tarefa.descricao }}</s>
-                {% else %}
-                    {{ tarefa.descricao }}
-                {% endif %}
+            <div class="tarefa-item" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 16px; padding: 10px; background-color: #f9f9f9; border-radius: 8px;">
+
+                <!-- Conteúdo da tarefa (descrição + imagem) -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+                    <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
+                        {% if tarefa.concluida %}
+                            <s>{{ tarefa.descricao }}</s>
+                        {% else %}
+                            {{ tarefa.descricao }}
+                        {% endif %}
+                    </div>
+
+                    {% if tarefa.imagem %}
+                    <div class="tarefa-imagem-container">
+                        <img src="{{ url_for('static', filename='uploads/' ~ tarefa.imagem) }}" alt="Imagem da tarefa" class="tarefa-imagem">
+                        {% if tarefa.usuario_id == current_user.id %}
+                        <form method="POST" action="{{ url_for('remover_imagem', id=tarefa.id) }}">
+                            <button type="submit" class="botao-remover-imagem">✖</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
-            
-                <div class="acoes">
-                <a href="/concluir/{{ tarefa.id }}">
-                    {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
-                </a>
-            
+
+                <!-- Botão de adicionar imagem -->
                 {% if tarefa.usuario_id == current_user.id %}
-                    <a href="{{ url_for('editar', id=tarefa.id) }}">✏️</a>
-                    <form action="{{ url_for('excluir_tarefa', id=tarefa.id) }}" method="POST">
-                    <button type="submit">🗑️</button>
-                    </form>
+                <form action="{{ url_for('enviar_imagem', id=tarefa.id) }}" method="POST" enctype="multipart/form-data" class="form-imagem">
+                    <label for="imagem-{{ tarefa.id }}" class="botao-imagem">📷</label>
+                    <input type="file" name="imagem" id="imagem-{{ tarefa.id }}" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                </form>
                 {% endif %}
+
+                <!-- Ações -->
+                <div class="acoes" style="display: flex; align-items: center; gap: 8px;">
+                    <a href="/concluir/{{ tarefa.id }}">
+                        {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
+                    </a>
+
+                    {% if tarefa.usuario_id == current_user.id %}
+                    <a href="{{ url_for('editar', id=tarefa.id) }}">✏️</a>
+                    <form action="{{ url_for('excluir_tarefa', id=tarefa.id) }}" method="POST" style="display: inline;">
+                        <button type="submit">🗑️</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
-        {% endfor %}
+            {% endfor %}
 
     </div>
+    
 </body>
 </html>
