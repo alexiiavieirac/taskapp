@@ -77,6 +77,10 @@ class Conexao(db.Model):
     seguidor = db.relationship('Usuario', foreign_keys=[seguidor_id], back_populates='seguindo_conexoes')
     seguido = db.relationship('Usuario', foreign_keys=[seguido_id], back_populates='seguidores_conexoes')
 
+    __table_args__ = (
+        db.Index('idx_seguidor_seguido', 'seguidor_id', 'seguido_id'),
+    )
+
 
 # =============================================
 # MODELO: Pedido de seguir outro usuário

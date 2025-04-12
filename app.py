@@ -827,11 +827,27 @@ def parar_de_seguir(usuario_id):
         seguido_id=usuario_id
     ).first()
 
+    mesmo_grupo = current_user.grupo_id == usuario_alvo.grupo_id
+
     if conexao:
         db.session.delete(conexao)
 
         # Se ele está no mesmo grupo da pessoa seguida, remove do grupo
-        if current_user.grupo_id == usuario_alvo.grupo_id:
+    #     if current_user.grupo_id == usuario_alvo.grupo_id:
+    #         current_user.grupo_id = None
+
+    #     db.session.commit()
+    #     flash('Você parou de seguir e saiu do grupo.', 'info')
+    # else:
+    #     flash('Você não segue essa pessoa.', 'warning')
+
+    # if current_user.grupo_id:
+    #     return redirect(url_for('conexoes'))
+    # else:
+    #     return redirect(url_for('index'))
+    
+    # Se ele está no mesmo grupo da pessoa seguida, remove do grupo
+        if mesmo_grupo:
             current_user.grupo_id = None
 
         db.session.commit()
@@ -839,7 +855,17 @@ def parar_de_seguir(usuario_id):
     else:
         flash('Você não segue essa pessoa.', 'warning')
 
-    return redirect(url_for('conexoes'))
+    if mesmo_grupo:
+        return redirect(url_for('index'))
+    else:
+        return redirect(url_for('conexoes'))
+
+# Pedidos para seguir o usuário
+@app.route('/pedidos_seguir')
+@login_required
+def pedidos_seguir():
+    pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
+    return render_template("pedidos_seguir.html", pedidos_recebidos=pedidos_recebidos)
 
 # Pedidos para entrar no grupo
 @app.route("/pedidos_grupo")
@@ -930,13 +956,6 @@ def recusar_pedido_grupo(pedido_id):
     flash("Pedido recusado com sucesso.", "warning")
     return redirect(url_for('pedidos_grupo'))
 
-# Pedidos para seguir o usuário
-@app.route('/pedidos_seguir')
-@login_required
-def pedidos_seguir():
-    pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
-    return render_template("pedidos_seguir.html", pedidos_recebidos=pedidos_recebidos)
-
 # =============================================
 # ROTAS ADICIONAIS (HISTÓRICO, CONFIGURAÇÕES)
 # =============================================
@@ -952,8 +971,7 @@ def historico():
     # Usa data fornecida ou data atual no fuso local
     data_str = request.args.get("data")
     if data_str:
-        data = datetime.strptime(data_str, "%Y-%m-%d")
-        data = fuso.localize(data)
+        data = datetime.strptime(data_str, "%Y-%m-%d").replace(tzinfo=fuso)
     else:
         data = datetime.now(fuso)
 
