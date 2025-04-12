@@ -827,27 +827,11 @@ def parar_de_seguir(usuario_id):
         seguido_id=usuario_id
     ).first()
 
-    mesmo_grupo = current_user.grupo_id == usuario_alvo.grupo_id
-
     if conexao:
         db.session.delete(conexao)
 
-        # Se ele está no mesmo grupo da pessoa seguida, remove do grupo
-    #     if current_user.grupo_id == usuario_alvo.grupo_id:
-    #         current_user.grupo_id = None
-
-    #     db.session.commit()
-    #     flash('Você parou de seguir e saiu do grupo.', 'info')
-    # else:
-    #     flash('Você não segue essa pessoa.', 'warning')
-
-    # if current_user.grupo_id:
-    #     return redirect(url_for('conexoes'))
-    # else:
-    #     return redirect(url_for('index'))
-    
-    # Se ele está no mesmo grupo da pessoa seguida, remove do grupo
-        if mesmo_grupo:
+        # Se estiver no mesmo grupo, remove do grupo
+        if current_user.grupo_id == usuario_alvo.grupo_id:
             current_user.grupo_id = None
 
         db.session.commit()
@@ -855,10 +839,8 @@ def parar_de_seguir(usuario_id):
     else:
         flash('Você não segue essa pessoa.', 'warning')
 
-    if mesmo_grupo:
-        return redirect(url_for('index'))
-    else:
-        return redirect(url_for('conexoes'))
+    # Sempre redireciona para a tela de conexões
+    return redirect(url_for('conexoes'))
 
 # Pedidos para seguir o usuário
 @app.route('/pedidos_seguir')
