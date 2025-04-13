@@ -1,6 +1,7 @@
 import os
 import re
-from flask import Flask, abort, render_template, request, redirect, url_for, flash, session
+from urllib.parse import urljoin, urlparse
+from flask import Flask, abort, jsonify, render_template, request, redirect, url_for, flash, session
 from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -12,6 +13,7 @@ from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
 from functools import wraps
+from dotenv import load_dotenv
 
 # =============================================
 # CONFIGURAÇÕES INICIAIS DO FLASK
@@ -32,11 +34,15 @@ app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
 
 # Configurações gerais da aplicação
-app.config['SECRET_KEY'] = 'chave-super-secreta'
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+app.config['SESSION_COOKIE_SECURE'] = False 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # =============================================
 # INICIALIZAÇÃO DE EXTENSÕES
@@ -60,7 +66,7 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 def obter_limites_semana():
     # Retorna o início e fim da semana atual (domingo a sábado) 
-    hoje = datetime.utcnow()
+    hoje = datetime.now(timezone.utc)
     # weekday() retorna 0 (segunda) até 6 (domingo)
     dias_desde_domingo = (hoje.weekday() + 1) % 7  # transforma segunda=1 ... domingo=0
     inicio_semana = hoje - timedelta(days=dias_desde_domingo)
@@ -70,7 +76,7 @@ def obter_limites_semana():
 
 # Função para salvar o histórico semanal
 def salvar_historico_semanal():
-    hoje = datetime.utcnow()
+    hoje = datetime.now(timezone.utc)
     # Pega a semana passada (domingo a sábado)
     inicio_semana = hoje - timedelta(days=hoje.weekday() + 8)
     inicio_semana = inicio_semana.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -126,6 +132,29 @@ def grupo_required(f):
 def is_following(self, usuario):
     return self.seguindo_conexoes.filter_by(seguido_id=usuario.id).first() is not None
 
+def is_safe_url(target):
+    # Impede redirecionamento externo malicioso
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
+
+# =============================================
+# RENDERIZAÇÃO DE PÁGINAS 
+# =============================================
+
+@app.route('/api/tarefas')
+@login_required
+def api_tarefas():
+    tarefas = Tarefa.query.filter_by(grupo_id=current_user.grupo_id, ativa=True).all()
+    return jsonify([
+        {
+            "id": t.id,
+            "descricao": t.descricao,
+            "concluida": t.concluida
+        }
+        for t in tarefas
+    ])
+
 # =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
 # =============================================
@@ -133,7 +162,10 @@ def is_following(self, usuario):
 @login_manager.user_loader
 def load_user(user_id):
     # Callback para carregar o usuário a partir do ID na sessão
-    return Usuario.query.get(int(user_id))
+    try:
+        return db.session.get(Usuario, int(user_id))
+    except (ValueError, TypeError):
+        return None
 
 # Rota de Registro
 @app.route("/register", methods=["GET", "POST"])
@@ -187,9 +219,13 @@ def login():
 
         usuario = Usuario.query.filter_by(email=email).first()
         if usuario and check_password_hash(usuario.senha, senha):
-            login_user(usuario)
+            login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
             flash('Login realizado com sucesso!', 'success')
+            
+            next_page = request.args.get('next')
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
             return redirect(url_for('index'))
         else:
             flash("Email ou senha inválidos", "danger")
@@ -202,6 +238,7 @@ def login():
 def logout():
     # Rota para logout de usuários
     logout_user()
+    session.pop('grupo_id', None)
     flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('login'))
 
@@ -290,7 +327,7 @@ def index():
     total_notificacoes = sum(notificacoes.values())
 
     return render_template(
-        "index.html",
+        'index.html',
         tarefas=tarefas,
         grupo=grupo,
         membros=membros,
@@ -329,7 +366,7 @@ def grupo():
 def ranking():
     grupo_id = current_user.grupo_id
     inicio_semana, fim_semana = obter_limites_semana()
-    agora = datetime.utcnow()
+    agora = datetime.now(timezone.utc)
 
     # Ranking da semana atual (baseado em quem concluiu corretamente)
     ranking = db.session.query(
@@ -415,7 +452,7 @@ def concluir(id):
         # Marca como concluída por quem clicou
         tarefa.concluida = True
         tarefa.concluida_por = current_user.id
-        tarefa.data_conclusao = datetime.utcnow()  # registra o momento
+        tarefa.data_conclusao = datetime.now(timezone.utc)  # registra o momento
         flash("Tarefa concluída com sucesso!")
 
     db.session.commit()
@@ -706,16 +743,16 @@ def conexoes():
     seguindo = Conexao.query.filter_by(seguidor_id=current_user.id).all()
     seguidores = Conexao.query.filter_by(seguido_id=current_user.id).all()
 
-    # Excluir quem já sigo e eu mesmo
-    ids_bloqueados = [c.seguido_id for c in seguindo]
-    ids_bloqueados.append(current_user.id)
+    # Criar um conjunto para evitar IDs duplicados
+    ids_bloqueados = {c.seguido_id for c in seguindo}
+    ids_bloqueados.add(current_user.id)
 
     # Considerar somente pedidos pendentes
     pedidos_enviados = PedidoSeguir.query.filter_by(
         remetente_id=current_user.id,
-        status='pendente'  # só bloqueia quem está com pedido pendente
+        status='pendente'
     ).all()
-    ids_bloqueados += [p.destinatario_id for p in pedidos_enviados]
+    ids_bloqueados.update(p.destinatario_id for p in pedidos_enviados)
 
     # Lista final de usuários disponíveis para seguir
     usuarios_disponiveis = Usuario.query.filter(~Usuario.id.in_(ids_bloqueados)).all()
@@ -830,16 +867,19 @@ def parar_de_seguir(usuario_id):
     if conexao:
         db.session.delete(conexao)
 
-        # Se estiver no mesmo grupo, remove do grupo
+        # Se estiver no mesmo grupo, retorna ao grupo original
         if current_user.grupo_id == usuario_alvo.grupo_id:
-            current_user.grupo_id = None
+            if current_user.grupo_original_id:
+                current_user.grupo_id = current_user.grupo_original_id
+                flash('Você saiu do grupo e voltou para seu grupo original.', 'info')
+            else:
+                current_user.grupo_id = None
+                flash('Você saiu do grupo.', 'info')
 
         db.session.commit()
-        flash('Você parou de seguir e saiu do grupo.', 'info')
     else:
         flash('Você não segue essa pessoa.', 'warning')
 
-    # Sempre redireciona para a tela de conexões
     return redirect(url_for('conexoes'))
 
 # Pedidos para seguir o usuário
@@ -848,6 +888,25 @@ def parar_de_seguir(usuario_id):
 def pedidos_seguir():
     pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
     return render_template("pedidos_seguir.html", pedidos_recebidos=pedidos_recebidos)
+
+# Para limpar pedidos expirados
+@app.route("/limpar_pedidos_expirados")
+@login_required
+def limpar_pedidos_expirados():
+    limite = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    pedidos_expirados = PedidoSeguir.query.filter(
+        PedidoSeguir.created_at < limite,
+        PedidoSeguir.status == 'pendente'
+    ).all()
+
+    for pedido in pedidos_expirados:
+        db.session.delete(pedido)
+    
+    db.session.commit()
+
+    flash(f"{len(pedidos_expirados)} pedidos expirados foram removidos.")
+    return redirect(url_for("conexoes"))
 
 # Pedidos para entrar no grupo
 @app.route("/pedidos_grupo")
@@ -917,6 +976,10 @@ def aceitar_pedido_grupo(pedido_id):
     # Atualiza status e atribui grupo ao solicitante
     pedido.status = 'aceito'
     solicitante = Usuario.query.get(pedido.solicitante_id)
+
+    if not solicitante.grupo_original_id:
+        solicitante.grupo_original_id = solicitante.grupo_id
+
     solicitante.grupo_id = grupo.id
 
     db.session.commit()

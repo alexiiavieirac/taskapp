@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 
@@ -18,7 +18,21 @@ class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), unique=True, nullable=False)
 
-    usuarios = db.relationship('Usuario', backref='grupo', lazy=True)
+    usuarios = db.relationship(
+        'Usuario', 
+        backref='grupo', 
+        lazy=True,
+        foreign_keys='Usuario.grupo_id'
+
+    )
+
+    grupo_original_usuarios = db.relationship( 
+        'Usuario',
+        backref='grupo_original',
+        lazy=True,
+        foreign_keys='Usuario.grupo_original_id'
+    )
+
     tarefas = db.relationship('Tarefa', backref='grupo', lazy=True)
     convites = db.relationship('ConviteGrupo', backref='grupo', lazy=True)
     pedidos = db.relationship('SolicitacaoGrupo', backref='grupo', lazy=True)
@@ -38,7 +52,9 @@ class Usuario(UserMixin, db.Model):
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
+
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=True)
+    grupo_original_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=True)
 
     avatar = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
@@ -71,15 +87,20 @@ class Usuario(UserMixin, db.Model):
 # MODELO: Conexão entre usuários (seguidores/seguidos)
 # =============================================
 class Conexao(db.Model):
-    seguidor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
-    seguido_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), primary_key=True)
+    __tablename__ = 'conexao'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    seguidor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    seguido_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
 
     seguidor = db.relationship('Usuario', foreign_keys=[seguidor_id], back_populates='seguindo_conexoes')
     seguido = db.relationship('Usuario', foreign_keys=[seguido_id], back_populates='seguidores_conexoes')
 
     __table_args__ = (
         db.Index('idx_seguidor_seguido', 'seguidor_id', 'seguido_id'),
+        db.UniqueConstraint('seguidor_id', 'seguido_id', name='uq_seguidor_seguido')
     )
+
 
 
 # =============================================
@@ -89,9 +110,10 @@ class PedidoSeguir(db.Model):
     __tablename__ = 'pedido_seguir'
 
     id = db.Column(db.Integer, primary_key=True)
-    remetente_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
-    destinatario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
-    status = db.Column(db.String(20), default='pendente')
+    remetente_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False, index=True)
+    destinatario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False, index=True)
+    status = db.Column(db.String(20), default='pendente', index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), nullable=False)
 
     remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados')
     destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos')
