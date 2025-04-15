@@ -35,7 +35,7 @@ app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
 
 # Configurações gerais da aplicação
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///taskapp.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -139,23 +139,6 @@ def is_safe_url(target):
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 # =============================================
-# RENDERIZAÇÃO DE PÁGINAS 
-# =============================================
-
-@app.route('/api/tarefas')
-@login_required
-def api_tarefas():
-    tarefas = Tarefa.query.filter_by(grupo_id=current_user.grupo_id, ativa=True).all()
-    return jsonify([
-        {
-            "id": t.id,
-            "descricao": t.descricao,
-            "concluida": t.concluida
-        }
-        for t in tarefas
-    ])
-
-# =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
 # =============================================
 
@@ -196,7 +179,7 @@ def register():
 
         # Cria novo usuário com senha criptografada
         senha_hash = generate_password_hash(senha)
-        novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id)
+        novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id, grupo_original_id=grupo.id)
         db.session.add(novo_usuario)
         db.session.commit()
 
@@ -218,6 +201,7 @@ def login():
         senha = request.form["senha"]
 
         usuario = Usuario.query.filter_by(email=email).first()
+        
         if usuario and check_password_hash(usuario.senha, senha):
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
@@ -312,11 +296,21 @@ def index():
     .all()
 
     # ======================================
+    # Marcar notificações como vistas
+    # ====================================== 
+    PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+    SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+    Conexao.query.filter_by(seguido_id=current_user.id).update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+
+    # Commit para salvar as alterações no banco
+    db.session.commit()
+
+    # ======================================
     # Notificações (Pedidos pendentes)
     # ======================================
     pedidos_seguir = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").count()
     pedidos_grupo = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").count()
-    conexoes = Conexao.query.filter_by(seguido_id=current_user.id).count()  # ou lógica desejada
+    conexoes = Conexao.query.filter_by(seguido_id=current_user.id).count()  
 
     notificacoes = {
         "grupo": pedidos_grupo,
@@ -867,7 +861,7 @@ def parar_de_seguir(usuario_id):
     if conexao:
         db.session.delete(conexao)
 
-        # Se estiver no mesmo grupo, retorna ao grupo original
+        # Se estiver no grupo da pessoa que deixou de seguir, volta ao grupo original
         if current_user.grupo_id == usuario_alvo.grupo_id:
             if current_user.grupo_original_id:
                 current_user.grupo_id = current_user.grupo_original_id
@@ -886,6 +880,15 @@ def parar_de_seguir(usuario_id):
 @app.route('/pedidos_seguir')
 @login_required
 def pedidos_seguir():
+    # Marcar como vistos todos os pedidos pendentes ainda não vistos
+    pedidos_nao_vistos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente", visto=False).all()
+
+    for pedido in pedidos_nao_vistos:
+        pedido.visto = True
+        pedido.data_visto = datetime.now(timezone.utc)
+        
+    db.session.commit()
+
     pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
     return render_template("pedidos_seguir.html", pedidos_recebidos=pedidos_recebidos)
 
@@ -894,7 +897,7 @@ def pedidos_seguir():
 @login_required
 def limpar_pedidos_expirados():
     limite = datetime.now(timezone.utc) - timedelta(days=7)
-    
+
     pedidos_expirados = PedidoSeguir.query.filter(
         PedidoSeguir.created_at < limite,
         PedidoSeguir.status == 'pendente'
@@ -917,7 +920,7 @@ def pedidos_grupo():
     if not current_user.grupo_id:
         flash("Você não está em um grupo.")
         return redirect(url_for("index"))
-
+    
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
     return render_template('pedidos_grupo.html', pedidos=pedidos)
 
