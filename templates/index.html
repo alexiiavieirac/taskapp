@@ -8,19 +8,49 @@
 
     <!-- Script para abrir/fechar o menu -->
     <script>
-        function toggleMenu() {
-            const menu = document.getElementById("menuDropdown");
-            menu.style.display = menu.style.display === "block" ? "none" : "block";
-        }
+        let menuFixado = false;
 
-        window.onclick = function(event) {
-            if (!event.target.matches('.menu-button')) {
-                const dropdowns = document.getElementsByClassName("dropdown");
-                for (let i = 0; i < dropdowns.length; i++) {
-                    dropdowns[i].style.display = "none";
-                }
+        function toggleMenu(event) {
+            event.stopPropagation(); // evita fechar imediatamente
+            const menu = document.getElementById("menuDropdown");
+            menuFixado = !menuFixado;
+
+            if (menuFixado) {
+                menu.style.display = "block";
+            } else {
+                menu.style.display = "none";
             }
         }
+
+        window.addEventListener("click", function(event) {
+            if (!event.target.closest('.menu-opcoes')) {
+                if (!event.target.classList.contains('menu-btn')) {
+                    const menu = document.getElementById("menuDropdown");
+                    menuFixado = false;
+                    menu.style.display = "none";
+                }
+            }
+        });
+
+        // Garante que hover ainda funcione
+        const menuOpcoes = document.querySelector('.menu-opcoes');
+        const menu = document.getElementById("menuDropdown");
+
+        let hoverAtivo = false;
+
+        menuOpcoes.addEventListener('mouseenter', () => {
+            if (!menuFixado) {
+                hoverAtivo = true;
+                menu.style.display = "block";
+            }
+        });
+
+        menuOpcoes.addEventListener('mouseleave', () => {
+            if (!menuFixado) {
+                hoverAtivo = false;
+                menu.style.display = "none";
+            }
+        });
     </script>
 </head>
 <body>
@@ -46,7 +76,7 @@
     <!-- Menu de Opções -->
     <div class="menu-opcoes">
         <!-- Ícone do menu com badge de notificação -->
-        <button class="menu-btn">
+        <button class="menu-btn" onclick="toggleMenu(event)">
             ☰ Menu
             {% if total_notificacoes > 0 %}
                 <span class="notificacao-badge">{{ total_notificacoes }}</span>
