@@ -382,3 +382,20 @@ h1 {
 .botao-imagem:hover {
   color: #0056b3;
 }
+
+.notificacao-label {
+  display: inline-block;
+  min-width: 18px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  background-color: red;
+  color: white;
+  border-radius: 12px;
+  margin-left: 4px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.notificacao-label.vazio {
+  display: none !important;
+}

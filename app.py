@@ -138,6 +138,23 @@ def is_safe_url(target):
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
+# Função para adicionar uma tarefa, se ela não existir no banco
+def adicionar_tarefa(descricao, grupo_id, usuario_id):
+    existe = Tarefa.query.filter_by(
+        descricao=descricao,
+        grupo_id=grupo_id,
+        ativa=True
+    ).first()
+    if not existe:
+        nova = Tarefa(
+            descricao=descricao,
+            usuario_id=usuario_id,
+            grupo_id=grupo_id,
+            ativa=True,
+            concluida=False
+        )
+        db.session.add(nova)
+
 # =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
 # =============================================
@@ -261,6 +278,12 @@ def index():
         # Verifica se é uma tarefa pré-estabelecida
         if descricao in tarefas_pre_estabelecidas:
             flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.")
+            return redirect(url_for("index"))
+
+        # Verifica se a tarefa já existe no banco de dados para o mesmo grupo
+        tarefa_existente = Tarefa.query.filter_by(descricao=descricao, grupo_id=grupo_id, ativa=True).first()
+        if tarefa_existente:
+            flash("Essa tarefa já foi adicionada anteriormente.")
             return redirect(url_for("index"))
 
         if imagem and imagem.filename != "":
@@ -464,7 +487,7 @@ def deletar(id):
     # Marca como inativa, não deleta
     tarefa.ativa = False
     db.session.commit()
-    flash("Tarefa excluída com sucesso.")
+    #flash("Tarefa excluída com sucesso.")
     return redirect("/")
 
 @app.route('/editar/<int:id>', methods=["GET", "POST"])
@@ -523,42 +546,24 @@ def tarefas_diarias():
         # Nova tarefa personalizada (input de texto)
         nova_tarefa = request.form.get("nova_tarefa", "").strip()
 
-        # Adiciona tarefas selecionadas, se ainda não existirem
+        # Adiciona as tarefas selecionadas (pré-estabelecidas), se ainda não existirem
         for descricao in tarefas_selecionadas:
-            existe = Tarefa.query.filter_by(
-                descricao=descricao,
-                grupo_id=current_user.grupo_id,
-                ativa=True
-            ).first()
-            if not existe:
-                nova = Tarefa(
-                    descricao=descricao,
-                    usuario_id=current_user.id,
-                    grupo_id=current_user.grupo_id,
-                    ativa=True,
-                    concluida=False
-                )
-                db.session.add(nova)
+            adicionar_tarefa(descricao, current_user.grupo_id, current_user.id)
 
         # Adiciona a nova tarefa personalizada, se não estiver nas pré-estabelecidas nem já no banco
         if nova_tarefa and nova_tarefa not in tarefas_pre_estabelecidas:
+            # Verifica se a tarefa personalizada já existe no banco antes de adicionar
             existe_personalizada = Tarefa.query.filter_by(
                 descricao=nova_tarefa,
                 grupo_id=current_user.grupo_id,
                 ativa=True
             ).first()
             if not existe_personalizada:
-                nova = Tarefa(
-                    descricao=nova_tarefa,
-                    usuario_id=current_user.id,
-                    grupo_id=current_user.grupo_id,
-                    ativa=True,
-                    concluida=False
-                )
-                db.session.add(nova)
+                adicionar_tarefa(nova_tarefa, current_user.grupo_id, current_user.id)
 
+        # Commit das mudanças no banco de dados
         db.session.commit()
-        flash("Tarefas adicionadas com sucesso!")
+        #flash("Tarefas adicionadas com sucesso!")
         return redirect(url_for("tarefas_diarias"))
 
     return render_template("tarefas_diarias.html", tarefas=tarefas_pre_estabelecidas)
@@ -610,7 +615,7 @@ def excluir_tarefa(id):
 
     # Impede a exclusão se a tarefa não tiver um dono definido
     if tarefa.usuario_id is None:
-        flash("Essa tarefa padrão não pode ser excluída.")
+        #flash("Essa tarefa padrão não pode ser excluída.")
         return redirect(url_for("index"))
 
     # Impede se o usuário atual não for o dono da tarefa (mesmo que tenha sido adicionada do tarefas_diarias)
@@ -844,9 +849,7 @@ def rejeitar_seguir(pedido_id):
         db.session.commit()
         flash("Pedido de seguimento rejeitado e removido.", "info")
 
-    # Redireciona conforme o contexto
-    origem = request.args.get("origem", "pedidos")
-    return redirect(url_for(origem))
+    return redirect(url_for('pedidos_seguir'))
 
 @app.route('/parar_de_seguir/<int:usuario_id>', methods=['POST'])
 @login_required
