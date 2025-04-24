@@ -27,15 +27,15 @@ app = Flask(__name__)
 
 # Configurações de e-mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+app.config['MAIL_PORT'] = os.getenv("MAIL_PORT")
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'lekacvieira@gmail.com'
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
 app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
-app.config['MAIL_DEFAULT_SENDER'] = 'lekacvieira@gmail.com'
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
 
 # Configurações gerais da aplicação
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///taskapp.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -630,27 +630,58 @@ def excluir_tarefa(id):
     return redirect(url_for("index"))
 
 # =============================================
-# ROTAS DE GERENCIAMENTO DE GRUPO
+# ROTAS DE GERENCIAMENTO DE GRUPO (EMAILS E GRUPOS)
 # =============================================
 
 @app.route("/enviar-convite", methods=["POST"])
 @login_required
 def enviar_convite():
-    email_destino = request.form["email"]
+    email_destino = request.form["email"].strip().lower()  # Normaliza o e-mail
+    
+    if email_destino == current_user.email:
+        flash("⚠️ Você não pode enviar convite para si mesmo.", "warning")
+        return redirect(url_for("grupo"))
+
     usuario_convidado = Usuario.query.filter_by(email=email_destino).first()
     
     if not usuario_convidado:
         flash("❌ Usuário não encontrado.", "danger")
         return redirect(url_for("grupo"))
     
+    # Evita duplicação de convites ativos
+    convite_existente = ConviteGrupo.query.filter_by(
+        email_convidado=email_destino, grupo_id=current_user.grupo_id
+    ).first()
+    if convite_existente:
+        flash("⚠️ Já foi enviado um convite para esse usuário.", "warning")
+        return redirect(url_for("grupo"))
+    
+    # Gera token único
     token = s.dumps({"email": email_destino, "grupo_id": current_user.grupo_id})
-
     link_aceite = url_for("aceitar_convite", token=token, _external=True)
 
-    msg = Message("Convite para entrar no grupo", recipients=[email_destino])
-    msg.body = f"Você foi convidado para entrar no grupo '{current_user.grupo.nome}'. Clique no link abaixo para aceitar:\n{link_aceite}"
-    mail.send(msg)
+    # Configura o remetente com o nome do usuário logado
+    msg = Message(
+        subject="📩 Convite para entrar no grupo",
+        recipients=[email_destino],
+        sender=(f"{current_user.nome} <no-reply@taskapp.com>")  # Remetente com o nome do usuário logado
+    )
+    
+    # Corpo do e-mail
+    msg.html = f"""
+        <h3>Você foi convidado para entrar no grupo <strong>{current_user.grupo.nome}</strong>!</h3>
+        <p>Para aceitar o convite, clique no link abaixo:</p>
+        <p><a href="{link_aceite}">Aceitar convite</a></p>
+        <p><em>Este link expira em 1 hora.</em></p>
+    """
+    
+    try:
+        mail.send(msg)
+    except Exception as e:
+        flash(f"❌ Erro ao enviar o e-mail: {str(e)}", "danger")
+        return redirect(url_for("grupo"))
 
+    # Salva o convite no banco
     convite = ConviteGrupo(
         email_convidado=email_destino,
         grupo_id=current_user.grupo_id,
@@ -665,26 +696,41 @@ def enviar_convite():
 @app.route("/aceitar-convite/<token>")
 def aceitar_convite(token):
     try:
-        data = s.loads(token, max_age=3600)  # Token expira em 1 hora
+        # Descriptografa o token com tempo máximo de 1 hora
+        data = s.loads(token, max_age=3600)
         email = data["email"]
         grupo_id = data["grupo_id"]
 
+        # Busca o usuário e grupo no banco
         usuario = Usuario.query.filter_by(email=email).first()
         grupo = Grupo.query.get(grupo_id)
 
+        # Valida se os dados existem
         if not usuario or not grupo:
             flash("❌ Usuário ou grupo não encontrados.", "danger")
             return redirect(url_for("login"))
 
+        # Verifica se o usuário já está em um grupo
+        if usuario.grupo_id:
+            flash("⚠️ Você já participa de um grupo. Aceitar o convite irá substituir o grupo atual.", "warning")
+            return redirect(url_for("login"))
+
+        # Atualiza o grupo do usuário
         usuario.grupo_id = grupo.id
         db.session.commit()
+
+        # Exclui o convite após o aceite (opcional)
+        convite = ConviteGrupo.query.filter_by(token=token).first()
+        if convite:
+            db.session.delete(convite)
+            db.session.commit()
 
         flash(f"🎉 Você agora faz parte do grupo '{grupo.nome}'!", "success")
         return redirect(url_for("login"))
 
     except Exception as e:
-        print(e)
-        flash("❌ Link inválido ou expirado.", "danger")
+        print(f"Erro ao aceitar convite: {e}")
+        flash("❌ Link inválido, expirado ou já utilizado.", "danger")
         return redirect(url_for("login"))
     
 @app.route("/adicionar-membro", methods=["POST"])
@@ -1077,6 +1123,36 @@ def configuracoes():
         return redirect(url_for('configuracoes'))
 
     return render_template("configuracoes.html")
+
+# =============================================
+# MUDANÇA DE SENHA
+# =============================================
+
+@app.route('/change_password', methods=["GET", "POST"])
+@login_required
+def mudar_senha():
+    if request.method == "POST":
+        nova_senha = request.form['nova_senha']
+        confirmar_senha = request.form['confirmar_senha']
+
+        if nova_senha != confirmar_senha:
+            flash("❌ As senhas não coincidem.", "danger")
+            return redirect(url_for('mudar_senha'))
+
+        # Validação de senha
+        senha_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$'
+        if not re.match(senha_regex, nova_senha):
+            flash("❌ A senha deve ter entre 8 e 15 caracteres, com letras maiúsculas, minúsculas e caracteres especiais.", "danger")
+            return redirect(url_for('mudar_senha'))
+
+        # Atualiza a senha
+        current_user.senha = generate_password_hash(nova_senha)
+        db.session.commit()
+        flash("Senha alterada com sucesso!", "success")
+        return redirect(url_for('configuracoes'))
+
+    return render_template("mudar_senha.html")
+
 
 # =============================================
 # INICIALIZAÇÃO DA APLICAÇÃO

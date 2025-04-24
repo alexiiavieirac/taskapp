@@ -1,18 +1,31 @@
+/* Resetando margens e padding globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Corpo da página */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Sego UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f1f1f1;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
 }
+
+/* Formulário */
 form {
     background: white;
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.1);
-    width: 300px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    width: 500px;
+    height: 300px;
 }
+
+/* Estilização dos inputs */
 input {
     width: 100%;
     padding: 10px;
@@ -20,16 +33,38 @@ input {
     border: 1px solid #ccc;
     border-radius: 8px;
 }
+
+/* Estilização do botão */
 button {
     width: 100%;
     background: #2c3e50;
     color: white;
     padding: 10px;
-    margin-top: 16px;
+    margin-top: 30px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
 }
+
 button:hover {
-    background: #34495e;
+    background: rgb(44, 62, 80);
+}
+
+/* Link de registro */
+.register-link {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.register-link a {
+    text-decoration: none;
+    color: #34495e;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
+
+h2 {
+    margin-bottom: 16px;
 }

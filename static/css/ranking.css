@@ -22,12 +22,19 @@ h2 {
     color: #222;
 }
 
+.tempo-restante {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    padding: 14px 18px;
+}
+
 ol {
     list-style: none;
     padding: 0;
 }
 
-ol li {
+.ranking-item {
     background-color: #e9ecef;
     margin-bottom: 0.75rem;
     padding: 1rem;
@@ -38,20 +45,19 @@ ol li {
     align-items: center;
 }
 
-ol li:nth-child(1) {
+.ranking-item:nth-child(1) {
     background-color: #fff3cd;
     font-weight: bold;
 }
 
-ol li:nth-child(2) {
+.ranking-item:nth-child(2) {
     background-color: #e2e3e5;
 }
 
-ol li:nth-child(3) {
+.ranking-item:nth-child(3) {
     background-color: #d1ecf1;
 }
 
-/* Barra superior */
 .top-bar {
     position: fixed;
     top: 0;
@@ -62,9 +68,9 @@ ol li:nth-child(3) {
     padding: 12px 30px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    display: flex; /* ADICIONADO */
-    justify-content: space-between; /* ADICIONADO */
-    align-items: center; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .navbar-user {
@@ -99,4 +105,24 @@ ol li:nth-child(3) {
 
 .logout-btn:hover {
     background-color: #c0392b;
+}
+
+.botao-container {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 16px;
+    background-color: rgb(44, 62, 80);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+    margin: 0 1rem;
+}
+
+.btn:hover {
+    background-color: #34495e;
 }

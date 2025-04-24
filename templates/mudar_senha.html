@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Mudar Senha</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mudar_senha.css') }}">
+</head>
+<body>
+    <h1>Mudar Senha</h1>
+
+    <form method="POST">
+        <!-- Senha -->
+        <label for="nova_senha">Nova senha:</label>
+        <input type="password" id="nova_senha" name="nova_senha" required>
+
+        <!-- Confirmar Senha -->
+        <label for="confirmar_senha">Confirmar nova senha:</label>
+        <input type="password" id="confirmar_senha" name="confirmar_senha" required>
+
+        <!-- Botão para alterar senha -->
+        <button type="submit">Alterar Senha</button>
+
+        <!-- Link para voltar para configurações -->
+        <a href="{{ url_for('configuracoes') }}" class="voltar-link">Voltar para configurações</a>
+    </form>
+</body>
+</html>

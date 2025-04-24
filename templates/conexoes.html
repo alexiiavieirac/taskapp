@@ -14,29 +14,31 @@
     <ul>
       {% for c in seguindo %}
         <li style="margin-bottom: 1.5rem;">
-          {{ c.seguido.nome }} - ID: {{ c.seguido_id }}
-
-          {% if c.seguido.grupo_id %}
-            {% if current_user.grupo_id and current_user.grupo_id == c.seguido.grupo_id %}
-              <span style="margin-left: 1rem; color: green;">(Você está no grupo)</span>
-            {% else %}
-              {% set pedido_existente = pedidos_enviados | selectattr("grupo_id", "equalto", c.seguido.grupo_id) | list %}
-              {% if pedido_existente %}
-                <span style="margin-left: 1rem; color: orange;">(Pedido enviado)</span>
+          <div class="linha-flex">
+            <span>{{ c.seguido.nome }} - ID: {{ c.seguido_id }}</span>
+    
+            {% if c.seguido.grupo_id %}
+              {% if current_user.grupo_id and current_user.grupo_id == c.seguido.grupo_id %}
+                <span style="margin-left: 1rem; color: green;">(Você está no grupo)</span>
               {% else %}
-                <form method="POST" action="{{ url_for('solicitar_entrada_grupo', usuario_id=c.seguido.id) }}" style="display: inline;">
-                  <button type="submit" class="btn-entrar-grupo">Entrar no grupo</button>
-                </form>
+                {% set pedido_existente = pedidos_enviados | selectattr("grupo_id", "equalto", c.seguido.grupo_id) | list %}
+                {% if pedido_existente %}
+                  <span style="margin-left: 1rem; color: orange;">(Pedido enviado)</span>
+                {% else %}
+                  <form method="POST" action="{{ url_for('solicitar_entrada_grupo', usuario_id=c.seguido.id) }}" class="inline-form">
+                    <button type="submit" class="seguir-btn btn-entrar-grupo">Entrar no grupo</button>
+                  </form>
+                {% endif %}
               {% endif %}
+            {% else %}
+              <span style="margin-left: 1rem; color: gray;">(Sem grupo)</span>
             {% endif %}
-          {% else %}
-            <span style="margin-left: 1rem; color: gray;">(Sem grupo)</span>
-          {% endif %}
-
-          <!-- Botão Parar de Seguir -->
-          <form method="POST" action="{{ url_for('parar_de_seguir', usuario_id=c.seguido.id) }}" style="display: inline;" onsubmit="return confirm('Deseja mesmo parar de seguir? Isso também removerá você do grupo dessa pessoa, se estiver.')">
-            <button type="submit" class="btn-parar-seguir">Parar de seguir</button>
-          </form>
+    
+            <!-- Botão Parar de Seguir -->
+            <form method="POST" action="{{ url_for('parar_de_seguir', usuario_id=c.seguido.id) }}" class="inline-form" onsubmit="return confirm('Deseja mesmo parar de seguir? Isso também removerá você do grupo dessa pessoa, se estiver.')">
+              <button type="submit" class="seguir-btn btn-parar-seguir">Parar de seguir</button>
+            </form>
+          </div>
         </li>
       {% endfor %}
     </ul>
@@ -51,9 +53,11 @@
     <h3>➕ Usuários disponíveis para seguir</h3>
     <ul>
       {% for usuario in usuarios %}
-        <li>
-          {{ usuario.nome }}
-          <a href="{{ url_for('seguir', usuario_id=usuario.id) }}">Seguir</a>
+        <li class="usuario-item">
+          <div class="linha-flex">
+            <span class="nome-usuario">{{ usuario.nome }}</span>
+            <a href="{{ url_for('seguir', usuario_id=usuario.id) }}" class="seguir-btn pequeno">Seguir</a>
+          </div>
         </li>
       {% endfor %}
     </ul>
@@ -67,19 +71,8 @@
       {% endfor %}
     </ul>
 
-    <div style="text-align: center; margin-top: 2rem;">
-      <a href="{{ url_for('index') }}" style="
-          display: inline-block;
-          padding: 0.75rem 1.5rem;
-          background-color: #007bff;
-          color: white;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: bold;
-          transition: background-color 0.3s ease;
-      " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
-          ⬅️ Voltar para o início
-      </a>
+    <div class="btn-voltar-wrapper">
+      <a href="{{ url_for('index') }}" class="btn-voltar">Voltar para o início</a>
     </div>
   </div>
 </body>

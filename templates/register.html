@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <title>Registrar</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
-        
 </head>
 <body>
     <form method="POST">
-        <h2 style="text-align:center;">Registrar</h2>
+        <h2 class="form-title">Registrar</h2>
 
-        <!-- Mensagens bonitinhas -->
+        <!-- Mensagens de feedback -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -30,7 +29,8 @@
         <input type="password" name="senha" placeholder="Senha" required>
         <input type="text" name="grupo" placeholder="Nome do Grupo" required>
         <button type="submit">Criar Conta</button>
-        <p style="text-align:center; margin-top:10px;">Já tem conta? <a href="{{ url_for('login') }}">Login</a></p>
+
+        <p class="login-link">Já tem conta? <a href="{{ url_for('login') }}">Login</a></p>
     </form>
 </body>
 </html>

@@ -85,7 +85,7 @@ form {
 .tarefas-grid {
     display: flex;
     flex-direction: column;
-    align-items: center; /* Centraliza a lista inteira na tela */
+    align-items: center;
     gap: 15px;
     margin-bottom: 25px;
 }
@@ -94,9 +94,9 @@ form {
 .tarefa-item {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Alinha checkbox + texto à esquerda */
+    justify-content: flex-start;
     width: 100%;
-    max-width: 300px; /* controla o tamanho do bloco */
+    max-width: 300px;
 }
 
 /* Checkbox */
@@ -110,35 +110,62 @@ form {
     font-size: 16px;
 }
 
-/* Botão de adicionar */
-button[type="submit"] {
-    background-color: #27ae60;
-    color: white;
-    border: none;
-    margin-top: 5px;
+/* Botões do formulário */
+.form-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+button[type="submit"],
+.voltar-btn {
     padding: 10px 20px;
     font-size: 16px;
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+/* Botão de adicionar */
+button[type="submit"] {
+    background-color: rgb(44, 62, 80);
+    color: white;
+    border: none;
+    margin-top: 40px;
+    padding: 12px 18px;
+    font-size: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
     display: block;
-    margin: 0 auto;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 button[type="submit"]:hover {
-    background-color: #1e8449;
+    background-color: #34495e;
 }
 
-/* Link para voltar */
-a.voltar {
-    margin-top: 20px;
-    font-size: 15px;
-    color: #2980b9;
-    text-decoration: none;
+/* Botão de voltar abaixo do Adicionar */
+.voltar-btn {
+    display: block; /* Faz o link se comportar como um bloco, permitindo centralização */
+    width: 100%; /* Para que o link ocupe toda a largura disponível */
+    text-align: center; /* Centraliza o texto dentro do link */
+    font-size: 14px;
+    font-weight: 600;
+    color: rgb(44, 62, 80); /* Cor do texto */
+    text-decoration: none; /* Remove o sublinhado */
+    transition: color 0.3s ease; /* Transição suave ao passar o mouse */
+    margin-top: 20px; /* Espaço superior entre o botão e o link */
+    cursor: pointer; /* Aparece como um link clicável */
 }
 
-a.voltar:hover {
-    text-decoration: underline;
+.voltar-btn:hover {
+    color: #34495e; /* Cor do texto ao passar o mouse */
 }
 
 /* Responsividade */
@@ -154,5 +181,15 @@ a.voltar:hover {
     .navbar-user img {
         width: 40px;
         height: 40px;
+    }
+
+    .form-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    button[type="submit"],
+    .voltar-btn {
+        width: 100%;
     }
 }

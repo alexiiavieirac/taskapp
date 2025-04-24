@@ -9,26 +9,26 @@
     <h1>Configurações da Conta</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <p class="{{ category }}">{{ message }}</p>
-        {% endfor %}
-      {% endif %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
     {% endwith %}
 
     <form method="POST" enctype="multipart/form-data">
-      <div class="upload-container">
-        <div class="upload-info">
-          <label for="avatar_file">Foto de perfil:</label><br>
-          <input type="file" name="avatar_file" accept="image/*">
+        <div class="upload-container">
+            <div class="upload-info">
+                <label for="avatar_file">Foto de perfil:</label><br>
+                <input type="file" name="avatar_file" accept="image/*">
+            </div>
+        
+            {% if current_user.avatar %}
+                <div class="avatar-preview">
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" width="100">
+                </div>
+            {% endif %}
         </div>
-      
-        {% if current_user.avatar %}
-          <div class="avatar-preview">
-            <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" width="100">
-          </div>
-        {% endif %}
-      </div>
 
         <!-- Nome -->
         <label for="nome">Nome:</label><br>
@@ -45,10 +45,16 @@
         <!-- URL de rede social -->
         <label for="rede_social">Link de rede social (opcional):</label><br>
         <input type="text" name="rede_social" id="rede_social" value="{{ current_user.rede_social or '' }}"><br><br>
+
+        <!-- Label estilizado para Mudar Senha -->
+        <label for="mudar-senha" class="mudar-senha-label">Alterar Senha:</label>
+        <div class="mudar-senha-container">
+            <a href="{{ url_for('mudar_senha') }}" class="mudar-senha-link">Clique aqui para alterar sua senha</a>
+        </div>
     
         <button type="submit">Salvar Alterações</button>
+    
+        <a href="{{ url_for('index') }}">Voltar</a>
     </form>
-
-    <a href="{{ url_for('index') }}">← Voltar</a>
 </body>
 </html>

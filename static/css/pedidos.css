@@ -1,98 +1,99 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f7f9fb;
+    padding: 2rem;
+    color: #333;
+}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7f9fb;
-            padding: 2rem;
-            color: #333;
-        }
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
 
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        }
+h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #222;
+}
 
-        h2 {
-            text-align: center;
-            margin-bottom: 2rem;
-            color: #222;
-        }
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
 
-        .pedido {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f1f3f5;
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
+ul li {
+    background-color: #f1f3f5;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-        .pedido span {
-            font-size: 1.1rem;
-        }
+ul li a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    margin-right: 1rem;
+    transition: color 0.3s ease;
+}
 
-        .botoes {
-            display: flex;
-            gap: 0.5rem;
-        }
+ul li a:hover {
+    color: #0056b3;
+}
 
-        .botoes button {
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
+ul li form {
+    display: inline;
+}
 
-        .aceitar {
-            background-color: #4CAF50;
-            color: white;
-        }
+ul li button {
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 0.95rem;
+}
 
-        .aceitar:hover {
-            background-color: #45a049;
-        }
+ul li .btn-aceitar {
+    background-color: #28a745;
+    color: white;
+}
 
-        .rejeitar {
-            background-color: #f44336;
-            color: white;
-        }
+ul li .btn-aceitar:hover {
+    background-color: #218838;
+}
 
-        .rejeitar:hover {
-            background-color: #d32f2f;
-        }
+ul li .btn-recusar {
+    background-color: #dc3545;
+    color: white;
+}
 
-        .btn-aceitar {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.2rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-          }
-          
-          .btn-aceitar:hover {
-            background-color: #218838;
-          }
-          
-          .btn-recusar {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.2rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-          }
-          
-          .btn-recusar:hover {
-            background-color: #c82333;
-          }
+ul li .btn-recusar:hover {
+    background-color: #c82333;
+}
+
+div a {
+    display: inline-block;
+    padding: 10px 16px;
+    background-color: rgb(44, 62, 80);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+div a:hover {
+    background-color: #34495e;
+}
+
+div a:focus {
+    outline: none;
+}

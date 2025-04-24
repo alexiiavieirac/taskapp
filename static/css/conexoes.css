@@ -56,29 +56,37 @@ li:hover {
   transform: scale(1.01);
 }
 
-.nome {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #2c3e50;
+.inline-form {
+  display: inline;
 }
 
-.pontos {
-  font-size: 0.95rem;
-  background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 4px 10px;
-  border-radius: 8px;
-  display: inline-block;
-  width: fit-content;
+.grupo-verde {
+  margin-left: 1rem;
+  color: green;
 }
 
-.id {
-  font-size: 0.85rem;
-  color: #888;
+.grupo-laranja {
+  margin-left: 1rem;
+  color: orange;
 }
 
-/* Botões de Ação */
-a, .seguir-btn, .aceitar-btn, .rejeitar-btn {
+.grupo-cinza {
+  margin-left: 1rem;
+  color: gray;
+}
+
+/* Alinhamento dos botões */
+.linha-flex {
+  display: flex;
+  justify-content: space-between; /* Espalha os itens para as extremidades */
+  align-items: center; /* Alinha os itens verticalmente no centro */
+  width: 100%; /* Garante que ocupe toda a largura disponível */
+}
+
+/* Botões de ação */
+.seguir-btn,
+.btn-entrar-grupo,
+.btn-parar-seguir {
   display: inline-block;
   padding: 8px 16px;
   border-radius: 8px;
@@ -89,103 +97,90 @@ a, .seguir-btn, .aceitar-btn, .rejeitar-btn {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+/* Estilo para o botão "Seguir" */
 .seguir-btn {
-  background-color: #4CAF50; /* Cor verde */
+  background-color: #2c3e50;
 }
 
-.aceitar-btn {
-  background-color: #007bff; /* Cor azul */
+.seguir-btn:hover {
+  background-color: #34495e;
 }
 
-.rejeitar-btn {
-  background-color: #dc3545; /* Cor vermelha */
+.seguir-btn.pequeno {
+  margin-left: auto;
+  padding: 8px 18px;
 }
 
-.seguir-btn:hover, .aceitar-btn:hover, .rejeitar-btn:hover {
-  background-color: #005f40; /* Verde mais escuro */
-}
-
-.aceitar-btn:hover {
-  background-color: #0056b3; /* Azul mais escuro */
-}
-
-.rejeitar-btn:hover {
-  background-color: #c82333; /* Vermelho mais escuro */
-}
-
-a:hover {
-  transform: scale(1.05);
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 20px;
-  }
-  h2 {
-    font-size: 1.5rem;
-  }
-  h3 {
-    font-size: 1.1rem;
-  }
-  li {
-    padding: 12px;
-  }
-}
-
-.btn-aceitar {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
-}
-
-.btn-aceitar:hover {
-  background-color: #218838;
-}
-
-.btn-recusar {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.2rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.3s ease;
-}
-
-.btn-recusar:hover {
-  background-color: #c82333;
-}
-
+/* Estilo para o botão "Entrar no grupo" */
 .btn-entrar-grupo {
   margin-left: 1rem;
   background-color: #198754;
-  color: white;
   border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-parar-seguir {
-  margin-left: 1rem;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-  cursor: pointer;
+  padding: 10px 20px; /* Aumento no tamanho do botão */
+  border-radius: 8px; /* Borda arredondada */
+  font-size: 0.9rem;
 }
 
 .btn-entrar-grupo:hover {
   background-color: #157347;
 }
 
+/* Estilo para o botão "Parar de seguir" */
+.btn-parar-seguir {
+  margin-left: 1rem;
+  background-color: #dc3545;
+  border: none;
+  padding: 10px 20px; /* Aumento no tamanho do botão */
+  border-radius: 8px; /* Borda arredondada */
+  font-size: 0.9rem;
+}
+
 .btn-parar-seguir:hover {
   background-color: #bb2d3b;
 }
+
+.btn-voltar-wrapper {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.btn-voltar {
+  color: white;
+  padding: 10px 16px;
+  background-color: rgb(44, 62, 80);
+  border-radius: 12px;
+  text-decoration: none; /* Remove o sublinhado */
+  outline: none; /* Remove o contorno de foco padrão */
+  transition: transform 0.3s ease, background-color 0.3s ease; 
+}
+
+/* Efeito de hover no botão "Voltar" */
+.btn-voltar:hover {
+  background-color: #34495e;
+  transform: scale(1.05);
+}
+
+/* Para garantir que não haja alteração na cor ou estilo ao clicar */
+.btn-voltar:focus {
+  outline: none; /* Remove o contorno de foco quando clicado */
+  background-color: #2c3e50; /* Mantém a cor original ao clicar */
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 20px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  li {
+    padding: 12px;
+  }
+}
+

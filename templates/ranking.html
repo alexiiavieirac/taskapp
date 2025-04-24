@@ -11,9 +11,9 @@
         {% if current_user.is_authenticated %}
             <div class="navbar-user">
                 {% if current_user.avatar %}
-                    <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno" style="width: 50px; height: 50px; border-radius: 50%;">
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno">
                 {% endif %}
-                <span class="user-welcome">{{ current_user.nome }} </span>
+                <span class="user-welcome">{{ current_user.nome }}</span>
             </div>
         {% endif %}
         <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
@@ -21,7 +21,7 @@
 
     <div class="ranking-container">
         <h2>🏆 Ranking Semanal</h2>
-        <div style="text-align: center; margin-bottom: 1rem; font-weight: bold;">
+        <div class="tempo-restante">
             ⏳ Tempo restante para o fim da semana:
             {{ tempo_restante.days }} dias,
             {{ tempo_restante.seconds // 3600 }} horas,
@@ -29,7 +29,7 @@
         </div>
         <ol>
             {% for nome, tarefas_concluidas in ranking %}
-                <li class="px-4 py-2 rounded-lg shadow-sm flex justify-between items-center">
+                <li class="ranking-item">
                     <span>
                         {% if loop.first %}
                             🥇
@@ -45,32 +45,9 @@
             {% endfor %}
         </ol>
 
-        <div style="text-align: center; margin-top: 2rem;">
-            <a href="{{ url_for('index') }}" style="
-                display: inline-block;
-                padding: 0.75rem 1.5rem;
-                background-color: #007bff;
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: bold;
-                transition: background-color 0.3s ease;
-            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
-                ⬅️ Voltar para o início
-            </a>
-
-            <a href="{{ url_for('historico') }}" style="
-                display: inline-block;
-                padding: 0.75rem 1.5rem;
-                background-color: #007bff;
-                color: white;
-                text-decoration: none;
-                border-radius: 8px;
-                font-weight: bold;
-                transition: background-color 0.3s ease;
-            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
-                ⬅️ Ver histórico
-            </a>
+        <div class="botao-container">
+            <a href="{{ url_for('index') }}" class="btn">Voltar para o início</a>
+            <a href="{{ url_for('historico') }}" class="btn">Ver histórico</a>
         </div>
     </div>
 </body>
