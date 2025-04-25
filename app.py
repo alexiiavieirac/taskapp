@@ -1,7 +1,8 @@
 import os
 import re
 from urllib.parse import urljoin, urlparse
-from flask import Flask, abort, jsonify, render_template, request, redirect, url_for, flash, session
+from flask_socketio import SocketIO, emit
+from flask import Flask, abort, jsonify, render_template, request, redirect, url_for, flash, session, make_response
 from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -43,6 +44,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Iniciar o SocketIO
+socketio = SocketIO(app)
 
 # =============================================
 # INICIALIZAÇÃO DE EXTENSÕES
@@ -154,6 +158,27 @@ def adicionar_tarefa(descricao, grupo_id, usuario_id):
             concluida=False
         )
         db.session.add(nova)
+
+# =============================================
+# DESABILITAR CACHE NO NAVEGADOR
+# ==============================================
+
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+# ==============================================
+# LIMPAR A SESSÃO DE FLASH
+# =============================================
+
+@app.after_request
+def limpar_flash(response):
+    # Limpa a sessão de flash após cada requisição
+    session.pop('_flashes', None)
+    return response
 
 # =============================================
 # ROTAS DE AUTENTICAÇÃO (LOGIN, REGISTRO, LOGOUT)
@@ -301,6 +326,7 @@ def index():
 
         db.session.add(nova_tarefa)
         db.session.commit()
+            
         return redirect("/")
 
     tarefas = Tarefa.query.filter_by(grupo_id=grupo_id, ativa=True).order_by(Tarefa.data_criacao).all()
@@ -902,23 +928,28 @@ def rejeitar_seguir(pedido_id):
 def parar_de_seguir(usuario_id):
     usuario_alvo = Usuario.query.get_or_404(usuario_id)
 
+    # Verifica se a conexão de seguimento existe
     conexao = Conexao.query.filter_by(
         seguidor_id=current_user.id,
         seguido_id=usuario_id
     ).first()
 
     if conexao:
+        # Remove a conexão de seguimento
         db.session.delete(conexao)
 
-        # Se estiver no grupo da pessoa que deixou de seguir, volta ao grupo original
+        # Se o usuário atual está no grupo do usuário alvo, retorna ao seu grupo original
         if current_user.grupo_id == usuario_alvo.grupo_id:
             if current_user.grupo_original_id:
+                # Caso o usuário tenha um grupo original configurado, retorna a ele
                 current_user.grupo_id = current_user.grupo_original_id
                 flash('Você saiu do grupo e voltou para seu grupo original.', 'info')
             else:
+                # Caso não tenha grupo original, remove a associação de grupo
                 current_user.grupo_id = None
                 flash('Você saiu do grupo.', 'info')
 
+        # Commit para salvar as mudanças
         db.session.commit()
     else:
         flash('Você não segue essa pessoa.', 'warning')

@@ -105,7 +105,6 @@ class Conexao(db.Model):
     )
 
 
-
 # =============================================
 # MODELO: Pedido de seguir outro usuário
 # =============================================
@@ -194,3 +193,11 @@ class Tarefa(db.Model):
 
     criador = db.relationship('Usuario', foreign_keys=[usuario_id])
     concluidor = db.relationship('Usuario', foreign_keys=[concluida_por])
+
+    # Relacionamentos:
+    criador = db.relationship('Usuario', foreign_keys=[usuario_id])
+    concluidor = db.relationship('Usuario', foreign_keys=[concluida_por])
+
+    # REGRAS:
+    # - Uma vez que 'concluida_por' é preenchido, nenhum outro usuário pode modificar.
+    # - A tarefa não pode mais ser desmarcada ou excluída.
