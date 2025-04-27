@@ -345,6 +345,18 @@ def index():
     .all()
 
     # ======================================
+    # Notificações (Pedidos pendentes)
+    # ======================================
+    pedidos_seguir = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
+    pedidos_grupo = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
+    conexoes = Conexao.query.filter_by(seguido_id=current_user.id).all()  
+
+    # Contar quantas notificações estão pendentes
+    pedidos_seguir_count = sum(1 for pedido in pedidos_seguir if not pedido.visto)  # Só conta se não foi visto
+    pedidos_grupo_count = sum(1 for pedido in pedidos_grupo if not pedido.visto)
+    conexoes_count = sum(1 for conexao in conexoes if not conexao.visto)
+
+    # ======================================
     # Marcar notificações como vistas
     # ====================================== 
     PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
@@ -354,20 +366,7 @@ def index():
     # Commit para salvar as alterações no banco
     db.session.commit()
 
-    # ======================================
-    # Notificações (Pedidos pendentes)
-    # ======================================
-    pedidos_seguir = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").count()
-    pedidos_grupo = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").count()
-    conexoes = Conexao.query.filter_by(seguido_id=current_user.id).count()  
-
-    notificacoes = {
-        "grupo": pedidos_grupo,
-        "seguidores": pedidos_seguir,
-        "conexoes": conexoes
-    }
-
-    total_notificacoes = sum(notificacoes.values())
+    total_notificacoes = pedidos_seguir_count + pedidos_grupo_count + conexoes_count
 
     return render_template(
         'index.html',
@@ -375,7 +374,11 @@ def index():
         grupo=grupo,
         membros=membros,
         grupo_id=grupo_id,
-        notificacoes=notificacoes,
+        notificacoes = {
+            "grupo": pedidos_grupo_count,
+            "seguidores": pedidos_seguir_count,
+            "conexoes": conexoes_count
+        },
         total_notificacoes=total_notificacoes
     )
 

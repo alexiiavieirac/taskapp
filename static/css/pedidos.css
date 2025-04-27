@@ -97,3 +97,23 @@ div a:hover {
 div a:focus {
     outline: none;
 }
+
+.btn-aceitar-link {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-aceitar-link:hover {
+    background-color: #218838;
+    color: white;
+}
+
+.btn-recusar-link {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-recusar-link:hover {
+    background-color: #c82333;
+    color: white;
+}
