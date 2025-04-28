@@ -97,7 +97,7 @@ class Conexao(db.Model):
     seguido = db.relationship('Usuario', foreign_keys=[seguido_id], back_populates='seguidores_conexoes')
 
     visto = db.Column(db.Boolean, default=False)
-    data_visto = db.Column(db.DateTime(timezone=True), nullable=True)
+    data_visto = db.Column(db.DateTime(), nullable=True)
 
     __table_args__ = (
         db.Index('idx_seguidor_seguido', 'seguidor_id', 'seguido_id'),
@@ -118,7 +118,7 @@ class PedidoSeguir(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), nullable=False)
 
     visto = db.Column(db.Boolean, default=False)
-    data_visto = db.Column(db.DateTime(timezone=True), nullable=True)
+    data_visto = db.Column(db.DateTime(), nullable=True)
 
     remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados')
     destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos')
@@ -146,7 +146,7 @@ class SolicitacaoGrupo(db.Model):
     status = db.Column(db.String(20), default='pendente')
 
     visto = db.Column(db.Boolean, default=False)
-    data_visto = db.Column(db.DateTime(timezone=True), nullable=True)
+    data_visto = db.Column(db.DateTime(), nullable=True)
 
     usuario = db.relationship('Usuario', backref='pedidos_grupo')
 
