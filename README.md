@@ -1,59 +1,65 @@
-# Task App
-O Task App é uma aplicação web voltada para a organização e gerenciamento de tarefas domésticas, projetada para tornar o dia a dia mais prático, divertido e colaborativo. Com o Task App, você pode adicionar, editar e excluir tarefas de forma simples e intuitiva. Além disso, ele oferece uma série de funcionalidades sociais que tornam a realização de tarefas mais engajante.
+# 📝 Task App
 
-## 🚀 Funcionalidades
-Gestão de Tarefas: Adicione, edite e exclua tarefas domésticas de forma fácil e rápida.
+<p align="justify">
+O <strong>Task App</strong> é uma aplicação web desenvolvida para facilitar a organização e o gerenciamento de tarefas domésticas, tornando o dia a dia mais prático, divertido e colaborativo. Com uma interface intuitiva e recursos sociais envolventes, o Task App permite adicionar, editar e excluir tarefas de forma simples, promovendo a produtividade e o espírito de equipe entre amigos e familiares.
+</p>
 
-Ranking Semanal: Participe de rankings semanais com pessoas do seu grupo, incentivando a competição saudável e a realização das tarefas.
+## 🚀 Funcionalidades Principais
 
-Competição entre Amigos: Desafie seus amigos e familiares a completarem tarefas de maneira mais eficiente e acompanhe quem está liderando!
+- **Gestão de Tarefas:** Adicione, edite e exclua tarefas domésticas de forma ágil e descomplicada.
+- **Ranking Semanal:** Participe de rankings semanais com seu grupo, incentivando a competição saudável e a conclusão das tarefas.
+- **Competição entre Amigos:** Desafie amigos e familiares a completar tarefas com mais eficiência e acompanhe o desempenho no ranking.
+- **Grupos de Tarefas:** Crie ou entre em grupos para compartilhar responsabilidades, dividir tarefas e colaborar de maneira organizada.
+- **Seguir Pessoas:** Acompanhe o progresso de outros usuários, siga ou deixe de seguir pessoas facilmente dentro dos grupos.
+- **Fotos das Tarefas Concluídas:** Deixe suas conquistas mais visíveis e divertidas, adicionando fotos das tarefas realizadas.
+- **Modo de Competição:** Transforme o cumprimento de tarefas em uma experiência interativa e desafiadora entre os membros do grupo.
 
-Grupos de Tarefas: Crie ou entre em grupos para compartilhar tarefas domésticas com outras pessoas. Você pode se juntar ao grupo de alguém ou convidar pessoas para o seu.
+## 🛠️ Funcionalidades em Desenvolvimento
 
-Seguir Pessoas: Acompanhe o progresso de pessoas nos grupos e veja as tarefas realizadas. É possível seguir ou deixar de seguir pessoas de forma fácil.
+<p align="justify">
+O Task App já está funcional para o uso diário, mas novas melhorias estão a caminho para enriquecer ainda mais a experiência dos usuários:
+</p>
 
-Fotos das Tarefas Concluídas: Torne suas tarefas mais visíveis e divertidas ao adicionar fotos das tarefas concluídas.
+- **Chat entre Membros:** Comunicação direta entre os integrantes dos grupos para troca de informações e motivação.
+- **Aprimoramento da Tela de Seguimento:** Melhorias na interface para tornar mais intuitivo o processo de seguir e deixar de seguir membros.
+- **Participação em Múltiplos Grupos:** Possibilidade de integrar-se a vários grupos simultaneamente, trazendo mais flexibilidade ao gerenciamento de tarefas.
 
-Modo de Competição: Organize competições entre os membros do grupo, tornando o processo de cumprir tarefas mais interativo e desafiador.
+## 📈 Estado Atual
 
-## 🚧 Em Produção
-O Task App está em produção e já está funcional para uso diário, mas ainda não está totalmente pronto. Algumas funcionalidades estão em desenvolvimento, como:
+<p align="justify">
+O Task App está em constante evolução! Atualmente, a aplicação é totalmente utilizável para organização doméstica, e novas funcionalidades estão sendo adicionadas continuamente para aprimorar a colaboração, a interação e a gestão de tarefas em grupo.
+</p>
 
-Chat entre Membros: Em breve será possível conversar com outros membros do grupo.
+## 🌐 Tecnologias utilizadas
 
-Tela de Seguir: Melhorias na interface para facilitar o processo de seguir e deixar de seguir pessoas.
+**Linguagem de Programação**
 
-Participação em Múltiplos Grupos: Em breve será possível participar de vários grupos simultaneamente, proporcionando maior flexibilidade.
+<img title="Python" alt="Python" width="40px" src="https://raw.githubusercontent.com/github/explore/master/topics/python/python.png" />|
+|--|
 
-Atualmente, o sistema já está funcional o suficiente para ser utilizado em sua casa, mas estamos constantemente trabalhando para adicionar mais recursos e melhorar a experiência do usuário.
+**Linguagens de Marcação e Estilização**
 
-__________________________________________________________________________________________________________________________________________________
+<img title="HTML5" alt="HTML5" width="40px" src="https://raw.githubusercontent.com/github/explore/master/topics/html/html.png">|<img title="CSS3" alt="CSS3" width="40px" src="https://raw.githubusercontent.com/github/explore/master/topics/css/css.png">
+|--|--|
 
-# Task App - English Version
-Task App is a web application designed to help users organize and manage household tasks in a fun and collaborative way. With Task App, you can easily add, edit, and delete tasks. It also offers several social features that make completing tasks more engaging.
+**Database**
 
-## 🚀 Features
-Task Management: Easily add, edit, and delete household tasks.
+<img title="SQL" alt="SQL" width="40px" src="https://raw.githubusercontent.com/github/explore/master/topics/sql/sql.png">|
+|--|
 
-Weekly Ranking: Participate in weekly rankings with people in your group to encourage healthy competition and task completion.
+**Tools**
 
-Competitions Among Friends: Challenge your friends and family to complete tasks more efficiently and track who’s leading!
+<img title="VS Code" alt="VS Code" width="40px" src="https://img.icons8.com/fluent/48/000000/visual-studio-code-2019.png">|<img title="git" alt="git" width="40px" src="https://raw.githubusercontent.com/github/explore/master/topics/git/git.png">|
+|--|--|
 
-Task Groups: Create or join groups to share household tasks with others. You can join someone else's group or invite people to yours.
+---
 
-Follow People: Track the progress of people in your groups and see their completed tasks. You can follow or unfollow people easily.
+<p align="center"><em>Organize suas tarefas, desafie seus amigos e transforme a rotina em uma jornada divertida com o Task App! 🚀</em></p>
 
-Task Photos: Make your tasks more visible and fun by adding photos of completed tasks.
+---
 
-Competition Mode: Organize competitions among group members, making task completion more interactive and challenging.
-
-# 🚧 In Production
-The Task App is currently in production and is already functional for daily use, but it is not yet fully finished. Some features are still under development, such as:
-
-Chat between Members: Soon you’ll be able to chat with other group members.
-
-Follow Screen: We are working on improving the interface to make following and unfollowing people easier.
-
-Multiple Group Participation: Soon, you’ll be able to participate in multiple groups simultaneously, allowing for more flexibility.
-
-The system is already functional enough for use in your home, but we are constantly working on adding more features and improving the user experience.
+<a href="https://www.linkedin.com/in/alexiavieiracoelho/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a>
+<a href="https://github.com/alexiiavieirac"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a>
+<a href="https://wa.me/5513992054664" target="_blank"><img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp"></a>
+<a href="https://mail.google.com/mail/?view=cm&to=vieiralexiac@gmail.com"><img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail"></a>
+<a href="https://t.me/alexiiavieirac" target="_blank"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
