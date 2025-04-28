@@ -3,6 +3,7 @@ import re
 from urllib.parse import urljoin, urlparse
 from flask_socketio import SocketIO, emit
 from flask import Flask, abort, jsonify, render_template, request, redirect, url_for, flash, session, make_response
+from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -15,7 +16,6 @@ from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
 from functools import wraps
 from dotenv import load_dotenv
-import pymysql
 
 # =============================================
 # CONFIGURAÇÕES INICIAIS DO FLASK
@@ -23,10 +23,6 @@ import pymysql
 
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
-
-pymysql.install_as_MySQLdb
-
-db = SQLAlchemy() 
 
 # Cria a instância do Flask
 app = Flask(__name__)
@@ -61,6 +57,8 @@ socketio = SocketIO(app)
 db.init_app(app)
 mail = Mail(app)
 migrate = Migrate(app, db)
+
+db = SQLAlchemy(app)
 
 # Configurações do sistema de login
 login_manager = LoginManager(app)
@@ -163,6 +161,22 @@ def adicionar_tarefa(descricao, grupo_id, usuario_id):
             concluida=False
         )
         db.session.add(nova)
+
+# =============================================
+# CONEXÃO COM O BANCO DE DADOS
+# =============================================
+
+from sqlalchemy import create_engine
+
+@app.before_first_request
+def check_db_connection():
+    try:
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        engine.connect()
+        print("Conexão com o banco de dados bem-sucedida!")
+    except Exception as e:
+        print(f"Erro ao conectar ao banco de dados: {e}")
+
 
 # =============================================
 # DESABILITAR CACHE NO NAVEGADOR
@@ -1199,9 +1213,5 @@ def mudar_senha():
 
 if __name__ == "__main__":
     with app.app_context():
-        try:
-            db.create_all()
-        except Exception as e:
-            print(f"Erro ao criar tabelas: {e}")
-    port = int(os.environ.get("PORT", 8080))
-    app.run(debug=True, host="0.0.0.0", port=port)
+        db.create_all()
+    app.run(debug=True, host="0.0.0.0", port=5000)
