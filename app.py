@@ -23,6 +23,8 @@ from dotenv import load_dotenv
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
+db = SQLAlchemy() 
+
 # Cria a instância do Flask
 app = Flask(__name__)
 
