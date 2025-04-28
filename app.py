@@ -15,6 +15,7 @@ from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import case, func
 from functools import wraps
 from dotenv import load_dotenv
+import pymysql
 
 # =============================================
 # CONFIGURAÇÕES INICIAIS DO FLASK
@@ -22,6 +23,8 @@ from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
+
+pymysql.install_as_MySQLdb
 
 db = SQLAlchemy() 
 
@@ -1201,4 +1204,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Erro ao criar tabelas: {e}")
     port = int(os.environ.get("PORT", 8080))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    app.run(debug=True, host="0.0.0.0", port=port)
