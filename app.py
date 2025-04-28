@@ -6,7 +6,6 @@ from flask import Flask, abort, jsonify, render_template, request, redirect, url
 from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Conexao, ConviteGrupo, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta, timezone
@@ -37,7 +36,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
 
 # Configurações gerais da aplicação
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("MYSQL_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -57,8 +56,6 @@ socketio = SocketIO(app)
 db.init_app(app)
 mail = Mail(app)
 migrate = Migrate(app, db)
-
-db = SQLAlchemy(app)
 
 # Configurações do sistema de login
 login_manager = LoginManager(app)
@@ -163,22 +160,6 @@ def adicionar_tarefa(descricao, grupo_id, usuario_id):
         db.session.add(nova)
 
 # =============================================
-# CONEXÃO COM O BANCO DE DADOS
-# =============================================
-
-from sqlalchemy import create_engine
-
-@app.before_first_request
-def check_db_connection():
-    try:
-        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-        engine.connect()
-        print("Conexão com o banco de dados bem-sucedida!")
-    except Exception as e:
-        print(f"Erro ao conectar ao banco de dados: {e}")
-
-
-# =============================================
 # DESABILITAR CACHE NO NAVEGADOR
 # ==============================================
 
@@ -262,12 +243,12 @@ def login():
         senha = request.form["senha"]
 
         usuario = Usuario.query.filter_by(email=email).first()
-        
+
         if usuario and check_password_hash(usuario.senha, senha):
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
             flash('Login realizado com sucesso!', 'success')
-            
+
             next_page = request.args.get('next')
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
@@ -345,7 +326,7 @@ def index():
 
         db.session.add(nova_tarefa)
         db.session.commit()
-            
+
         return redirect("/")
 
     tarefas = Tarefa.query.filter_by(grupo_id=grupo_id, ativa=True).order_by(Tarefa.data_criacao).all()
@@ -386,6 +367,19 @@ def index():
     db.session.commit()
 
     total_notificacoes = pedidos_seguir_count + pedidos_grupo_count + conexoes_count
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     return render_template(
         'index.html',
@@ -590,7 +584,7 @@ def tarefas_diarias():
     if request.method == "POST":
         # Tarefas selecionadas (pré-estabelecidas)
         tarefas_selecionadas = request.form.getlist("tarefas")
-        
+
         # Nova tarefa personalizada (input de texto)
         nova_tarefa = request.form.get("nova_tarefa", "").strip()
 
@@ -639,7 +633,7 @@ def enviar_imagem(id):
 @login_required
 def remover_imagem(id):
     tarefa = Tarefa.query.get_or_404(id)
-    
+
     if tarefa.usuario_id != current_user.id:
         abort(403)  # Não autorizado
 
@@ -649,7 +643,7 @@ def remover_imagem(id):
             os.remove(caminho_imagem)
         tarefa.imagem = None
         db.session.commit()
-    
+
     return redirect(url_for('index'))
 
 @app.route("/excluir_tarefa/<int:id>", methods=["POST"])
@@ -685,17 +679,17 @@ def excluir_tarefa(id):
 @login_required
 def enviar_convite():
     email_destino = request.form["email"].strip().lower()  # Normaliza o e-mail
-    
+
     if email_destino == current_user.email:
         flash("⚠️ Você não pode enviar convite para si mesmo.", "warning")
         return redirect(url_for("grupo"))
 
     usuario_convidado = Usuario.query.filter_by(email=email_destino).first()
-    
+
     if not usuario_convidado:
         flash("❌ Usuário não encontrado.", "danger")
         return redirect(url_for("grupo"))
-    
+
     # Evita duplicação de convites ativos
     convite_existente = ConviteGrupo.query.filter_by(
         email_convidado=email_destino, grupo_id=current_user.grupo_id
@@ -703,7 +697,7 @@ def enviar_convite():
     if convite_existente:
         flash("⚠️ Já foi enviado um convite para esse usuário.", "warning")
         return redirect(url_for("grupo"))
-    
+
     # Gera token único
     token = s.dumps({"email": email_destino, "grupo_id": current_user.grupo_id})
     link_aceite = url_for("aceitar_convite", token=token, _external=True)
@@ -714,7 +708,7 @@ def enviar_convite():
         recipients=[email_destino],
         sender=(f"{current_user.nome} <no-reply@taskapp.com>")  # Remetente com o nome do usuário logado
     )
-    
+
     # Corpo do e-mail
     msg.html = f"""
         <h3>Você foi convidado para entrar no grupo <strong>{current_user.grupo.nome}</strong>!</h3>
@@ -722,7 +716,7 @@ def enviar_convite():
         <p><a href="{link_aceite}">Aceitar convite</a></p>
         <p><em>Este link expira em 1 hora.</em></p>
     """
-    
+
     try:
         mail.send(msg)
     except Exception as e:
@@ -780,7 +774,7 @@ def aceitar_convite(token):
         print(f"Erro ao aceitar convite: {e}")
         flash("❌ Link inválido, expirado ou já utilizado.", "danger")
         return redirect(url_for("login"))
-    
+
 @app.route("/adicionar-membro", methods=["POST"])
 @login_required
 def adicionar_membro():
@@ -988,7 +982,7 @@ def pedidos_seguir():
     for pedido in pedidos_nao_vistos:
         pedido.visto = True
         pedido.data_visto = datetime.now(timezone.utc)
-        
+
     db.session.commit()
 
     pedidos_recebidos = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
@@ -1007,7 +1001,7 @@ def limpar_pedidos_expirados():
 
     for pedido in pedidos_expirados:
         db.session.delete(pedido)
-    
+
     db.session.commit()
 
     flash(f"{len(pedidos_expirados)} pedidos expirados foram removidos.")
@@ -1022,7 +1016,7 @@ def pedidos_grupo():
     if not current_user.grupo_id:
         flash("Você não está em um grupo.")
         return redirect(url_for("index"))
-    
+
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
     return render_template('pedidos_grupo.html', pedidos=pedidos)
 
@@ -1213,5 +1207,5 @@ def mudar_senha():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+        db.create_all()  
+    app.run(debug=True)
