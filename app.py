@@ -3,7 +3,6 @@ import re
 from urllib.parse import urljoin, urlparse
 from flask_socketio import SocketIO, emit
 from flask import Flask, abort, jsonify, render_template, request, redirect, url_for, flash, session, make_response
-from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
