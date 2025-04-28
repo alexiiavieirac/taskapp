@@ -163,6 +163,22 @@ def adicionar_tarefa(descricao, grupo_id, usuario_id):
         db.session.add(nova)
 
 # =============================================
+# CONEXÃO COM O BANCO DE DADOS
+# =============================================
+
+from sqlalchemy import create_engine
+
+@app.before_first_request
+def check_db_connection():
+    try:
+        engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+        engine.connect()
+        print("Conexão com o banco de dados bem-sucedida!")
+    except Exception as e:
+        print(f"Erro ao conectar ao banco de dados: {e}")
+
+
+# =============================================
 # DESABILITAR CACHE NO NAVEGADOR
 # ==============================================
 
