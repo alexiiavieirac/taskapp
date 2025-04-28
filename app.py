@@ -57,8 +57,6 @@ db.init_app(app)
 mail = Mail(app)
 migrate = Migrate(app, db)
 
-db = SQLAlchemy(app)
-
 # Configurações do sistema de login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
