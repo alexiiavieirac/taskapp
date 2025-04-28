@@ -6,6 +6,7 @@ from flask import Flask, abort, jsonify, render_template, request, redirect, url
 from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Conexao, ConviteGrupo, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta, timezone
@@ -56,6 +57,8 @@ socketio = SocketIO(app)
 db.init_app(app)
 mail = Mail(app)
 migrate = Migrate(app, db)
+
+db = SQLAlchemy(app)
 
 # Configurações do sistema de login
 login_manager = LoginManager(app)
