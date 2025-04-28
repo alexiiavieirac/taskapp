@@ -1,7 +1,8 @@
 .env
 instance/taskapp.db
-__pycache__/models.cpython-313.pyc
-__pycache__/app.cpython-313.pyc
-__pycache__/app.cpython-312.pyc
-__pycache__
+__pycache__/
 migrations
+*.pyc
+venv/
+.vscode/
+.idea/
