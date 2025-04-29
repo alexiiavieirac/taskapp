@@ -6,13 +6,14 @@ from flask import Flask, abort, jsonify, render_template, request, redirect, url
 from flask.cli import load_dotenv
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import Conexao, ConviteGrupo, HistoricoRanking, PedidoSeguir, SolicitacaoGrupo, db, Usuario, Grupo, Tarefa
 from datetime import datetime, timedelta, timezone
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy import case, func
+from sqlalchemy import case, create_engine, func
 from functools import wraps
 from dotenv import load_dotenv
 
@@ -44,6 +45,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['SESSION_COOKIE_SECURE'] = False 
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+db = SQLAlchemy()
 
 # Iniciar o SocketIO
 socketio = SocketIO(app)
@@ -368,19 +371,6 @@ def index():
 
     total_notificacoes = pedidos_seguir_count + pedidos_grupo_count + conexoes_count
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     return render_template(
         'index.html',
         tarefas=tarefas,
@@ -474,9 +464,10 @@ def ranking():
                     usuario_id=r.usuario_id,
                     grupo_id=grupo_id,
                     tarefas_concluidas=r.tarefas_concluidas,
-                    semana=semana_label
+                    semana=semana_label,
                 )
                 db.session.add(novo_registro)
+
             db.session.commit()
 
     tempo_restante = fim_semana - agora
