@@ -1,14 +1,26 @@
-FROM python:3.9-slim
+# Usa imagem base do Python
+FROM python:3.11-slim
 
+# Instala dependências do sistema (necessárias para mysqlclient)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    default-libmysqlclient-dev \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    libpq-dev
+
+# Cria diretório de trabalho no container
 WORKDIR /app
 
+# Copia o arquivo requirements.txt
 COPY requirements.txt .
 
-# Instala pacotes do sistema necessários para compilar certas dependências
-RUN apt-get update && apt-get install -y build-essential default-libmysqlclient-dev gcc
-
+# Instala dependências Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copia o restante do projeto
 COPY . .
 
+# Define o comando para iniciar a aplicação
 CMD ["python", "app.py"]
