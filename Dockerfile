@@ -1,26 +1,33 @@
-# Usa imagem base do Python
 FROM python:3.11-slim
 
-# Instala dependências do sistema (necessárias para mysqlclient)
+# Evita prompts do apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instala dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     build-essential \
     libssl-dev \
     libffi-dev \
-    libpq-dev
+    curl \
+    && apt-get clean
 
-# Cria diretório de trabalho no container
+# Cria diretório de trabalho
 WORKDIR /app
 
-# Copia o arquivo requirements.txt
+# Copia os requisitos primeiro para aproveitar cache do Docker
 COPY requirements.txt .
 
-# Instala dependências Python
+# Instala bibliotecas Python
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do projeto
+# Copia o restante do código da aplicação
 COPY . .
 
-# Define o comando para iniciar a aplicação
+# Expõe a porta que a app Flask irá rodar
+EXPOSE 5000
+
+# Comando para iniciar a aplicação (ajuste para seu script real)
 CMD ["python", "app.py"]
