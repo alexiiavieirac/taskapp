@@ -1,17 +1,14 @@
-# Usar uma imagem base do Python
 FROM python:3.9-slim
 
-# Definir o diretório de trabalho dentro do contêiner
 WORKDIR /app
 
-# Copiar os arquivos do projeto para o contêiner
-COPY . /app
+COPY requirements.txt .
 
-# Instalar dependências
+# Instala pacotes do sistema necessários para compilar certas dependências
+RUN apt-get update && apt-get install -y build-essential default-libmysqlclient-dev gcc
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expor a porta do app (ajuste conforme sua necessidade)
-EXPOSE 5000
+COPY . .
 
-# Rodar o aplicativo
 CMD ["python", "app.py"]
