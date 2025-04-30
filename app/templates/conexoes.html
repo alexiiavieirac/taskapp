@@ -25,7 +25,7 @@
                 {% if pedido_existente %}
                   <span style="margin-left: 1rem; color: orange;">(Pedido enviado)</span>
                 {% else %}
-                  <form method="POST" action="{{ url_for('solicitar_entrada_grupo', usuario_id=c.seguido.id) }}" class="inline-form">
+                  <form method="POST" action="{{ url_for('main.solicitar_entrada_grupo', usuario_id=c.seguido.id) }}" class="inline-form">
                     <button type="submit" class="seguir-btn btn-entrar-grupo">Entrar no grupo</button>
                   </form>
                 {% endif %}
@@ -35,7 +35,7 @@
             {% endif %}
     
             <!-- Botão Parar de Seguir -->
-            <form method="POST" action="{{ url_for('parar_de_seguir', usuario_id=c.seguido.id) }}" class="inline-form" onsubmit="return confirm('Deseja mesmo parar de seguir? Isso também removerá você do grupo dessa pessoa, se estiver.')">
+            <form method="POST" action="{{ url_for('main.parar_de_seguir', usuario_id=c.seguido.id) }}" class="inline-form" onsubmit="return confirm('Deseja mesmo parar de seguir? Isso também removerá você do grupo dessa pessoa, se estiver.')">
               <button type="submit" class="seguir-btn btn-parar-seguir">Parar de seguir</button>
             </form>
           </div>
@@ -56,7 +56,7 @@
         <li class="usuario-item">
           <div class="linha-flex">
             <span class="nome-usuario">{{ usuario.nome }}</span>
-            <a href="{{ url_for('seguir', usuario_id=usuario.id) }}" class="seguir-btn pequeno">Seguir</a>
+            <a href="{{ url_for('main.seguir', usuario_id=usuario.id) }}" class="seguir-btn pequeno">Seguir</a>
           </div>
         </li>
       {% endfor %}
@@ -72,7 +72,7 @@
     </ul>
 
     <div class="btn-voltar-wrapper">
-      <a href="{{ url_for('index') }}" class="btn-voltar">Voltar para o início</a>
+      <a href="{{ url_for('main.index') }}" class="btn-voltar">Voltar para o início</a>
     </div>
   </div>
 </body>

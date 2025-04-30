@@ -49,12 +49,12 @@
         <!-- Label estilizado para Mudar Senha -->
         <label for="mudar-senha" class="mudar-senha-label">Alterar Senha:</label>
         <div class="mudar-senha-container">
-            <a href="{{ url_for('mudar_senha') }}" class="mudar-senha-link">Clique aqui para alterar sua senha</a>
+            <a href="{{ url_for('main.mudar_senha') }}" class="mudar-senha-link">Clique aqui para alterar sua senha</a>
         </div>
     
         <button type="submit">Salvar Alterações</button>
     
-        <a href="{{ url_for('index') }}">Voltar</a>
+        <a href="{{ url_for('main.index') }}">Voltar</a>
     </form>
 </body>
 </html>

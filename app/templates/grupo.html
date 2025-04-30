@@ -16,7 +16,7 @@
             <span class="user-welcome">{{ current_user.nome }} </span>
         </div>
     {% endif %}
-    <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+    <a class="logout-btn" href="{{ url_for('main.logout') }}">Sair</a>
   </div>
 
   <div class="container">
@@ -59,7 +59,7 @@
     <!-- Formulário de Convite por E-mail -->
     <div style="margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
         <h2 style="margin-bottom: 1rem;">Convidar novo membro por e-mail</h2>
-        <form action="{{ url_for('enviar_convite') }}" method="POST" class="form-convite">
+        <form action="{{ url_for('main.enviar_convite') }}" method="POST" class="form-convite">
         <input 
             type="email" 
             name="email" 
@@ -71,7 +71,7 @@
     </div>
   
     <div class="text-center">
-        <a href="{{ url_for('index') }}" class="btn-voltar">Voltar para a Página Inicial</a>
+        <a href="{{ url_for('main.index') }}" class="btn-voltar">Voltar para a Página Inicial</a>
     </div>
   </div>
 </body>

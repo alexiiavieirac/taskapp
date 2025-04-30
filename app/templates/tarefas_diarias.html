@@ -15,7 +15,7 @@
                 <span class="user-welcome">{{ current_user.nome }}</span>
             </div>
         {% endif %}
-        <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+        <a class="logout-btn" href="{{ url_for('main.logout') }}">Sair</a>
     </div>
 
     <main>
@@ -32,7 +32,7 @@
     
             <button type="submit">Adicionar</button>
             
-            <a class="voltar-btn" href="{{ url_for('index') }}">Voltar para Minhas Tarefas</a>
+            <a class="voltar-btn" href="{{ url_for('main.index') }}">Voltar para Minhas Tarefas</a>
         </form>
     </main>  
 </body>

@@ -15,15 +15,15 @@
                 <span class="user-welcome">{{ current_user.nome }} </span>
             </div>
         {% endif %}
-        <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+        <a class="logout-btn" href="{{ url_for('main.logout') }}">Sair</a>
     </div>
 
     <div class="historico-container">
         <h2 class="historico-titulo">📅 Histórico: <span>{{ data }}</span></h2>
 
         <div class="navegacao">
-            <a class="navegacao-btn" href="{{ url_for('historico', data=dia_anterior) }}">Dia anterior</a>
-            <a class="navegacao-btn" href="{{ url_for('historico', data=proximo_dia) }}">Próximo dia</a>
+            <a class="navegacao-btn" href="{{ url_for('main.historico', data=dia_anterior) }}">Dia anterior</a>
+            <a class="navegacao-btn" href="{{ url_for('main.historico', data=proximo_dia) }}">Próximo dia</a>
         </div>
 
         {% if historico %}
@@ -43,7 +43,7 @@
             <p class="sem-registros">Nenhuma tarefa concluída neste dia.</p>
         {% endif %}
 
-        <a class="btn-voltar" href="{{ url_for('index') }}">Voltar para início</a>
+        <a class="btn-voltar" href="{{ url_for('main.index') }}">Voltar para início</a>
     </div>
 
 </body>

@@ -16,7 +16,7 @@
                 <span class="user-welcome">{{ current_user.nome }}</span>
             </div>
         {% endif %}
-        <a class="logout-btn" href="{{ url_for('logout') }}">Sair</a>
+        <a class="logout-btn" href="{{ url_for('main.logout') }}">Sair</a>
     </div>
 
     <div class="ranking-container">
@@ -46,8 +46,8 @@
         </ol>
 
         <div class="botao-container">
-            <a href="{{ url_for('index') }}" class="btn">Voltar para o início</a>
-            <a href="{{ url_for('historico') }}" class="btn">Ver histórico</a>
+            <a href="{{ url_for('main.index') }}" class="btn">Voltar para o início</a>
+            <a href="{{ url_for('main.historico') }}" class="btn">Ver histórico</a>
         </div>
     </div>
 </body>

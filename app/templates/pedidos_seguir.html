@@ -13,8 +13,8 @@
             {% for pedido in pedidos_recebidos %}
                 <li>
                     {{ pedido.remetente.nome }}
-                    <a href="{{ url_for('aceitar_seguir', pedido_id=pedido.id) }}" class="btn-aceitar-link">Aceitar</a>
-                    <a href="{{ url_for('rejeitar_seguir', pedido_id=pedido.id) }}" class="btn-recusar-link">Rejeitar</a>
+                    <a href="{{ url_for('main.aceitar_seguir', pedido_id=pedido.id) }}" class="btn-aceitar-link">Aceitar</a>
+                    <a href="{{ url_for('main.rejeitar_seguir', pedido_id=pedido.id) }}" class="btn-recusar-link">Rejeitar</a>
                 </li>
             {% else %}
                 <li>Nenhum pedido recebido.</li>
@@ -22,7 +22,7 @@
         </ul>
 
         <div style="text-align: center; margin-top: 2rem;">
-            <a href="{{ url_for('index') }}" class="voltar-link">Voltar para o início</a>
+            <a href="{{ url_for('main.index') }}" class="voltar-link">Voltar para o início</a>
         </div>
     </div>
 </body>
