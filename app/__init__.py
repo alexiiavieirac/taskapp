@@ -33,6 +33,8 @@ def create_app():
     mail.init_app(app)
     socketio.init_app(app)
 
+    app.extensions['socketio'] = socketio
+
     init_db(app)
     init_serializer(app)
 
