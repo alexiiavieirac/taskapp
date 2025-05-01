@@ -1,9 +1,10 @@
+# Usa imagem leve do Python
 FROM python:3.11-slim
 
-# Evita prompts do apt
+# Evita prompts na instalação de pacotes do sistema
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala dependências do sistema
+# Instala dependências do sistema necessárias para compilar pacotes Python
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
@@ -11,23 +12,27 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libffi-dev \
     curl \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Cria diretório de trabalho
+# Copia o arquivo requirements.txt da raiz do projeto para o container
+COPY requirements.txt /tmp/requirements.txt
+
+# Instala dependências
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copia os requisitos primeiro para aproveitar cache do Docker
-COPY requirements.txt .
-
-# Instala a versão mais recente do pip e as dependências
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copia o restante do código da aplicação
+# Copia todo o restante do projeto para dentro do container
 COPY . .
 
-# Expõe a porta que a app Flask irá rodar
+# Expõe a porta padrão do Flask
 EXPOSE 5000
 
-# Comando para iniciar a aplicação (ajuste para seu script real)
+# Define ambiente de produção para o Flask (opcional)
+ENV FLASK_ENV=production
+
+# Comando de inicialização da aplicação
 CMD ["python", "app.py"]
