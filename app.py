@@ -15,4 +15,4 @@ if __name__ == "__main__":
     debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     port = int(os.getenv('PORT', 5000))
 
-    socketio.run(app, debug=debug_mode, port=port)
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)
