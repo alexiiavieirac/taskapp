@@ -19,7 +19,7 @@ WORKDIR /app
 # Copia os requisitos primeiro para aproveitar cache do Docker
 COPY requirements.txt .
 
-# Instala bibliotecas Python
+# Instala a versão mais recente do pip e as dependências
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 

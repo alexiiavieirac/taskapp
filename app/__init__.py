@@ -7,7 +7,6 @@ from .extensions import db, login_manager, mail, socketio
 from app.extensions.database import init_db
 from app.extensions.login_manager import init_login_manager
 from app.controllers.auth_controller import main_bp
-from app.controllers.auth_controller import auth_bp
 
 def create_app():
     app = Flask( __name__,
@@ -22,7 +21,7 @@ def create_app():
     )
 
     #app.register_blueprint(conexao_bp)
-    app.register_blueprint(auth_bp)
+    #app.register_blueprint(auth_bp)
 
     configure_uploads(app)
 
