@@ -31,8 +31,18 @@ def register():
         grupo = Grupo.query.filter_by(nome=grupo_nome).first()
 
         if not grupo:
-            # Cria um novo grupo com o nome fornecido
-            grupo = Grupo(nome=grupo_nome)
+            # Verifica se já existe algum grupo com o nome fornecido
+            grupo_count = Grupo.query.filter(Grupo.nome.like(f"{grupo_nome}%")).count()
+
+            if grupo_count > 0:
+                # Adiciona um sufixo numérico para garantir que o nome do grupo seja único
+                novo_nome_grupo = f"{grupo_nome}_{grupo_count + 1}"
+            else:
+                # Se o nome nunca foi usado, usa o nome original
+                novo_nome_grupo = grupo_nome
+
+            # Cria um novo grupo com o nome único
+            grupo = Grupo(nome=novo_nome_grupo)
             db.session.add(grupo)
             db.session.commit()
 
