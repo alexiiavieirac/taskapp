@@ -54,6 +54,8 @@ def register():
             flash(f"Erro ao criar usuário ou grupo: {str(e)}", "danger")
             return redirect(url_for('main.register'))
 
+    return render_template("register.html")
+
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
