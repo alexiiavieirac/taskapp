@@ -1,5 +1,9 @@
 import os
 import sys
+import eventlet
+
+eventlet.monkey_patch()
+
 from pathlib import Path
 from dotenv import load_dotenv
 from app import create_app
