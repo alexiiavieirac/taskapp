@@ -1,4 +1,3 @@
-from datetime import time
 from flask import render_template, request, flash, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -28,33 +27,26 @@ def register():
             flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning")
             return redirect(url_for('main.register'))
 
-        try:
-            # Garantindo que um novo grupo seja criado, mesmo que o nome seja o mesmo
-            # Adicionando um identificador único ao nome do grupo para garantir que seja único
-            novo_grupo_nome = f"{grupo_nome}_{int(time.time())}"  # Adiciona um timestamp ao nome do grupo para garantir unicidade
-
-            grupo = Grupo(nome=novo_grupo_nome)
+        # Cria grupo se ainda não existir
+        grupo = Grupo.query.filter_by(nome=grupo_nome).first()
+        
+        if not grupo:
+            grupo = Grupo(nome=grupo_nome)
             db.session.add(grupo)
-            db.session.commit()  # Commit para garantir que o grupo seja salvo com ID único
+            db.session.commit()
 
-            # Criação do usuário com senha criptografada
-            senha_hash = generate_password_hash(senha)
-            novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id, grupo_original_id=grupo.id)
-            db.session.add(novo_usuario)
-            db.session.commit()  # Commit para salvar o novo usuário no banco de dados
+        # Cria novo usuário com senha criptografada
+        senha_hash = generate_password_hash(senha)
+        novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id, grupo_original_id=grupo.id)
+        db.session.add(novo_usuario)
+        db.session.commit()
 
-            # Login automático após o registro
-            login_user(novo_usuario)
-            session['grupo_id'] = novo_usuario.grupo_id
-            flash("Usuário registrado e logado com sucesso!", "success")
+        # Login automático após registro
+        login_user(novo_usuario)
+        session['grupo_id'] = novo_usuario.grupo_id
+        flash("Usuário registrado e logado com sucesso!", "success")
 
-            return redirect(url_for('main.index'))
-
-        except Exception as e:
-            # Se ocorrer algum erro, fazer rollback e mostrar a mensagem
-            db.session.rollback()
-            flash(f"Erro ao criar usuário ou grupo: {str(e)}", "danger")
-            return redirect(url_for('main.register'))
+        return redirect(url_for('main.index'))
 
     return render_template("register.html")
 
