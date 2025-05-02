@@ -28,12 +28,13 @@ def register():
             return redirect(url_for('main.register'))
 
         try:
-            # Criação do grupo, garantindo que um novo grupo seja criado mesmo com nome repetido
-            grupo = Grupo.query.filter_by(nome=grupo_nome).first()
-            if not grupo:
-                grupo = Grupo(nome=grupo_nome)
-                db.session.add(grupo)
-                db.session.commit()  # Commit para garantir que o grupo seja salvo com ID único
+            # Garantindo que um novo grupo seja criado, mesmo que o nome seja o mesmo
+            # Adicionando um identificador único ao nome do grupo para garantir que seja único
+            novo_grupo_nome = f"{grupo_nome}_{int(time.time())}"  # Adiciona um timestamp ao nome do grupo para garantir unicidade
+
+            grupo = Grupo(nome=novo_grupo_nome)
+            db.session.add(grupo)
+            db.session.commit()  # Commit para garantir que o grupo seja salvo com ID único
 
             # Criação do usuário com senha criptografada
             senha_hash = generate_password_hash(senha)
