@@ -38,7 +38,11 @@ def register():
 
         # Cria novo usuário com senha criptografada
         senha_hash = generate_password_hash(senha)
-        novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id, grupo_original_id=grupo.id)
+        novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash)
+
+        # O grupo original é gravado, mas o novo usuário não entra no grupo ainda
+        novo_usuario.grupo_original_id = grupo.id
+
         db.session.add(novo_usuario)
         db.session.commit()
 
