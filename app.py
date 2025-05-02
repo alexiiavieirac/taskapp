@@ -15,8 +15,8 @@ load_dotenv()
 
 app = create_app()
 
-if __name__ == "__main__":
-    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
-    port = int(os.getenv('PORT', 5000))
+# if __name__ == "__main__":
+#     debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+#     port = int(os.getenv('PORT', 5000))
 
-    socketio.run(app, host="0.0.0.0", port=port)
+#     socketio.run(app, host="0.0.0.0", port=port)
