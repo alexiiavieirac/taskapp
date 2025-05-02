@@ -32,6 +32,8 @@ class ConviteGrupo(db.Model):
     token = db.Column(db.String(64), unique=True, nullable=False)
     status = db.Column(db.String(20), default='pendente')
     data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
 class SolicitacaoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     solicitante_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
