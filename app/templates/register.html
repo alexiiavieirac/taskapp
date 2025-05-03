@@ -36,5 +36,24 @@
 
         <p class="login-link">Já tem conta? <a href="{{ url_for('main.login') }}">Login</a></p>
     </form>
+
+    <!-- Script para remover as mensagens flash após 5 segundos -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const flashMessages = document.querySelectorAll('.flash-message');
+
+        flashMessages.forEach(message => {
+          // Aplica fade-out após 5 segundos
+          setTimeout(() => {
+            message.classList.add('fade-out'); // Adiciona a classe para o efeito de fade-out
+          }, 5000); // 5 segundos
+
+          // Remove a mensagem completamente após 6 segundos
+          setTimeout(() => {
+            message.style.display = 'none'; // Remove a mensagem do DOM
+          }, 6000); // 6 segundos
+        });
+      });
+    </script>
 </body>
 </html>
