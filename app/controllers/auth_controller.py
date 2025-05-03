@@ -19,12 +19,12 @@ def register():
 
         # Valida a senha
         if not validar_senha(senha):
-            flash("A senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger")
+            flash("A senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger", "register")
             return redirect(url_for('main.register'))
 
         # Verifica se o e-mail já está cadastrado
         if Usuario.query.filter_by(email=email).first():
-            flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning")
+            flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning", "register")
             return redirect(url_for('main.register'))
 
         # Sempre cria um novo grupo, mesmo que o nome já exista
@@ -41,7 +41,7 @@ def register():
         # Login automático após registro
         login_user(novo_usuario)
         session['grupo_id'] = novo_usuario.grupo_id
-        flash("Usuário registrado e logado com sucesso!", "success")
+        flash("Usuário registrado e logado com sucesso!", "success", "register")
 
         return redirect(url_for('main.index'))
 
@@ -60,14 +60,14 @@ def login():
         if usuario and check_password_hash(usuario.senha, senha):
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
-            flash('Login realizado com sucesso!', 'success')
+            flash('Login realizado com sucesso!', 'success', "login")
 
             next_page = request.args.get('next')
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
             return redirect(url_for('main.index'))
         else:
-            flash("Email ou senha inválidos", "danger")
+            flash("Email ou senha inválidos", "danger", "login")
 
     return render_template("login.html")
 
