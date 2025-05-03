@@ -60,14 +60,14 @@ def login():
         if usuario and check_password_hash(usuario.senha, senha):
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
-            flash('Login realizado com sucesso!', 'success', "login")
+            flash('Login realizado com sucesso!', 'success')
 
             next_page = request.args.get('next')
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
             return redirect(url_for('main.index'))
         else:
-            flash("Email ou senha inválidos", "danger", "login")
+            flash("Email ou senha inválidos", "danger")
 
     return render_template("login.html")
 
