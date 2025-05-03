@@ -40,19 +40,26 @@ form {
     font-weight: 500;
     font-size: 14px;
     box-shadow: 0 0 6px rgba(0,0,0,0.05);
-    transition: all 0.3s ease-in-out;
+    transition: opacity 1s ease-out; /* Animação de transição suave */
 }
 
+/* Mensagem de sucesso */
 .flash-success {
     background-color: #e6f9ee;
     color: #2e7d32;
     border: 1px solid #c1eac5;
 }
 
+/* Mensagem de erro */
 .flash-danger {
     background-color: #ffe6e6;
     color: #c0392b;
     border: 1px solid #f5c6cb;
+}
+
+/* Efeito de fade-out */
+.flash-message.fade-out {
+    opacity: 0;
 }
 
 /* Estilo dos inputs */
