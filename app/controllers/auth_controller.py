@@ -19,12 +19,12 @@ def register():
 
         # Valida a senha
         if not validar_senha(senha):
-            flash("A senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger", "register")
+            flash("A senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger")
             return redirect(url_for('main.register'))
 
         # Verifica se o e-mail já está cadastrado
         if Usuario.query.filter_by(email=email).first():
-            flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning", "register")
+            flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning")
             return redirect(url_for('main.register'))
 
         # Sempre cria um novo grupo, mesmo que o nome já exista
@@ -41,7 +41,7 @@ def register():
         # Login automático após registro
         login_user(novo_usuario)
         session['grupo_id'] = novo_usuario.grupo_id
-        flash("Usuário registrado e logado com sucesso!", "success", "register")
+        flash("Usuário registrado e logado com sucesso!", "success")
 
         return redirect(url_for('main.index'))
 
