@@ -27,13 +27,10 @@ def register():
             flash("Este e-mail já está registrado. Faça login ou use outro e-mail.", "warning")
             return redirect(url_for('main.register'))
 
-        # Cria grupo se ainda não existir
-        grupo = Grupo.query.filter_by(nome=grupo_nome).first()
-        
-        if not grupo:
-            grupo = Grupo(nome=grupo_nome)
-            db.session.add(grupo)
-            db.session.commit()
+        # Sempre cria um novo grupo, mesmo que o nome já exista
+        grupo = Grupo(nome=grupo_nome)
+        db.session.add(grupo)
+        db.session.commit()
 
         # Cria novo usuário com senha criptografada
         senha_hash = generate_password_hash(senha)
