@@ -60,7 +60,7 @@ def login():
         if usuario and check_password_hash(usuario.senha, senha):
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
-            flash('Login realizado com sucesso!', 'login-success')
+            #flash('Login realizado com sucesso!', 'login-success')
 
             next_page = request.args.get('next')
             if next_page and is_safe_url(next_page):
