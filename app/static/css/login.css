@@ -104,3 +104,14 @@ button:hover {
 .register-link a:hover {
     text-decoration: underline;
 }
+
+/* Animação para desaparecer em 5 segundos */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+.fade-message {
+    animation: fadeOut 5s ease-in-out forwards;
+}
