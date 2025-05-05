@@ -63,3 +63,7 @@ O Task App está em constante evolução! Atualmente, a aplicação é totalment
 <a href="https://wa.me/5513992054664" target="_blank"><img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp"></a>
 <a href="https://mail.google.com/mail/?view=cm&to=vieiralexiac@gmail.com" target="_blank"><img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail"></a>
 <a href="https://t.me/alexiiavieirac" target="_blank"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
+
+---
+
+<p align="center"><em>© 2025 - Aléxia Vieira Coelho</em></p>
