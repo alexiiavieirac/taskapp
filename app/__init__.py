@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from flask import Flask
 from app.extensions.serializer import init_serializer
 from app.extensions.uploads import configure_uploads
@@ -10,6 +11,8 @@ from app.controllers.auth_controller import main_bp
 from flask_migrate import Migrate
 
 def create_app():
+    load_dotenv()
+
     app = Flask( __name__,
         template_folder=os.path.join(os.path.dirname(__file__), 'templates'),
         static_folder=os.path.join(os.path.dirname(__file__), 'static')
