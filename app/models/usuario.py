@@ -18,6 +18,8 @@ class Usuario(UserMixin, db.Model):
     bio = db.Column(db.Text, nullable=True)
     rede_social = db.Column(db.String(255), nullable=True)
 
+    email_verificado = db.Column(db.Boolean, default=False)
+
     # Conexões de quem o usuário segue
     seguindo_conexoes = db.relationship(
         'Conexao',

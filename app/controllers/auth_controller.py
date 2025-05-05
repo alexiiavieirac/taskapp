@@ -1,7 +1,10 @@
 from flask import render_template, request, flash, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required
+from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
+from app.extensions import mail
+from app.extensions.serializer import generate_token
 from app.utils.network_utils import is_safe_url
 from app.models import Usuario, Grupo
 from app.utils.auth_utils import validar_senha
@@ -38,14 +41,42 @@ def register():
         db.session.add(novo_usuario)
         db.session.commit()
 
+        # Gera token e envia e-mail de verificação
+        token = generate_token(novo_usuario.email)
+        confirm_url = url_for('main.confirm_email', token=token, _external=True)
+        html = render_template('email/confirm_email.html', confirm_url=confirm_url)
+        subject = "Confirme seu e-mail para ativar sua conta"
+        msg = Message(recipients=[novo_usuario.email], subject=subject, html=html)
+        mail.send(msg)
+
         # Login automático após registro
-        login_user(novo_usuario)
-        session['grupo_id'] = novo_usuario.grupo_id
-        flash("Usuário registrado e logado com sucesso!", "register-success")
+        # login_user(novo_usuario)
+        # session['grupo_id'] = novo_usuario.grupo_id
+        # flash("Usuário registrado e logado com sucesso!", "register-success")
 
         return redirect(url_for('main.index'))
 
     return render_template("register.html")
+
+
+@main_bp.route('/confirm-email/<token>')
+def confirm_email(token):
+    from extensions.serializer import confirm_token
+
+    email = confirm_token(token)
+    if not email:
+        flash("O link de verificação é inválido ou expirou.", "danger")
+        return redirect(url_for('main.login'))
+
+    usuario = Usuario.query.filter_by(email=email).first_or_404()
+    if usuario.email_verificado:
+        flash("E-mail já foi verificado. Faça login.", "info")
+    else:
+        usuario.email_verificado = True
+        db.session.commit()
+        flash("E-mail verificado com sucesso! Agora você pode fazer login.", "success")
+
+    return redirect(url_for('main.login'))
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])
@@ -58,6 +89,10 @@ def login():
         usuario = Usuario.query.filter_by(email=email).first()
 
         if usuario and check_password_hash(usuario.senha, senha):
+            if not usuario.email_verificado:
+                flash("Você precisa verificar seu e-mail antes de fazer login.", "login-warning")
+                return redirect(url_for('main.login'))
+
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
             #flash('Login realizado com sucesso!', 'login-success')
