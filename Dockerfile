@@ -23,6 +23,8 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
 RUN pip install gunicorn gevent
+RUN pip install python-dotenv
+
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
