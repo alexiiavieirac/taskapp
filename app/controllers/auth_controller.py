@@ -41,42 +41,14 @@ def register():
         db.session.add(novo_usuario)
         db.session.commit()
 
-        # Gera token e envia e-mail de verificação
-        token = generate_token(novo_usuario.email)
-        confirm_url = url_for('main.confirm_email', token=token, _external=True)
-        html = render_template('email/confirm_email.html', confirm_url=confirm_url)
-        subject = "Confirme seu e-mail para ativar sua conta"
-        msg = Message(recipients=[novo_usuario.email], subject=subject, html=html)
-        mail.send(msg)
-
         # Login automático após registro
-        # login_user(novo_usuario)
-        # session['grupo_id'] = novo_usuario.grupo_id
-        # flash("Usuário registrado e logado com sucesso!", "register-success")
+        login_user(novo_usuario)
+        session['grupo_id'] = novo_usuario.grupo_id
+        flash("Usuário registrado e logado com sucesso!", "register-success")
 
         return redirect(url_for('main.index'))
 
     return render_template("register.html")
-
-
-@main_bp.route('/confirm-email/<token>')
-def confirm_email(token):
-    email = confirm_token(token)
-
-    if not email:
-        flash("O link de verificação é inválido ou expirou.", "danger")
-        return redirect(url_for('main.login'))
-
-    usuario = Usuario.query.filter_by(email=email).first_or_404()
-    
-    if usuario.email_verificado:
-        flash("E-mail já foi verificado. Faça login.", "info")
-    else:
-        usuario.email_verificado = True
-        db.session.commit()
-        flash("E-mail verificado com sucesso! Agora você pode fazer login.", "success")
-
-    return redirect(url_for('main.login'))
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])
