@@ -4,7 +4,7 @@ from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 from app.extensions import mail
-from app.extensions.serializer import generate_token
+from app.extensions.serializer import generate_token, confirm_token
 from app.utils.network_utils import is_safe_url
 from app.models import Usuario, Grupo
 from app.utils.auth_utils import validar_senha
@@ -61,14 +61,14 @@ def register():
 
 @main_bp.route('/confirm-email/<token>')
 def confirm_email(token):
-    from extensions.serializer import confirm_token
-
     email = confirm_token(token)
+
     if not email:
         flash("O link de verificação é inválido ou expirou.", "danger")
         return redirect(url_for('main.login'))
 
     usuario = Usuario.query.filter_by(email=email).first_or_404()
+    
     if usuario.email_verificado:
         flash("E-mail já foi verificado. Faça login.", "info")
     else:
