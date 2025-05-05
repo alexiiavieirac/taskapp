@@ -22,7 +22,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
-RUN pip install gunicorn
+RUN pip install gunicorn gevent
 
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
