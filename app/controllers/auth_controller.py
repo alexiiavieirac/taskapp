@@ -78,5 +78,5 @@ def logout():
     # Rota para logout de usuários
     logout_user()
     session.pop('grupo_id', None)
-    flash('Logout realizado com sucesso.', 'info')
+    #flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('main.login'))
