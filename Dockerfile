@@ -35,5 +35,5 @@ EXPOSE 5000
 ENV FLASK_ENV=production
 
 # Comando de inicialização da aplicação
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--worker-class", "gevent"]
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000", "--worker-class", "gevent"]
 
