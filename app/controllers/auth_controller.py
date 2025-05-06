@@ -42,13 +42,52 @@ def register():
         db.session.commit()
 
         # Login automático após registro
-        login_user(novo_usuario)
-        session['grupo_id'] = novo_usuario.grupo_id
-        flash("Usuário registrado e logado com sucesso!", "register-success")
+        # login_user(novo_usuario)
+        # session['grupo_id'] = novo_usuario.grupo_id
+        # flash("Usuário registrado e logado com sucesso!", "register-success")
 
-        return redirect(url_for('main.index'))
+        #return redirect(url_for('main.index'))
+
+        # Gera token de confirmação
+        token = generate_token(novo_usuario.email)
+        confirm_url = url_for('main.confirmar_email', token=token, _external=True)
+
+        # Envia o e-mail de confirmação
+        msg = Message("Confirme seu cadastro", recipients=[novo_usuario.email])
+        msg.body = f"Olá {novo_usuario.nome}, clique no link para confirmar seu e-mail: {confirm_url}"
+        msg.html = render_template("email/confirm_email.html", confirm_url=confirm_url, nome=novo_usuario.nome)
+        mail.send(msg)
+
+        flash("Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada.", "register-info")
+        return redirect(url_for('main.aguardando_confirmacao'))
 
     return render_template("register.html")
+
+
+@main_bp.route('/aguardando-confirmacao')
+def aguardando_confirmacao():
+    # Página que avisa para o usuário verificar o e-mail
+    return render_template("aguardando_confirmacao.html")
+
+
+@main_bp.route('/confirmar/<token>')
+def confirmar_email(token):
+    email = confirm_token(token)
+
+    if not email:
+        flash("O link de confirmação é inválido ou expirou.", "confirm-danger")
+        return redirect(url_for('main.login'))
+
+    usuario = Usuario.query.filter_by(email=email).first_or_404()
+
+    if usuario.email_verificado:
+        flash("Conta já confirmada. Faça login.", "confirm-info")
+        return redirect(url_for('main.login'))
+
+    usuario.email_verificado = True
+    db.session.commit()
+    flash("E-mail confirmado com sucesso! Agora você pode fazer login.", "confirm-success")
+    return redirect(url_for('main.login'))
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from flask_login import UserMixin
+from app.extensions import serializer
 from app.extensions.database import db
 from app.models.connection import Conexao
 
@@ -42,6 +43,19 @@ class Usuario(UserMixin, db.Model):
             Conexao.seguido_id == usuario.id
         ).count() > 0
     
+    # 🔑 Gerar token de verificação de e-mail
+    def gerar_token_confirmacao(self):
+        return serializer.dumps(self.email, salt='confirm-email')
+
+    # ✅ Confirmar token e retornar e-mail, ou None se inválido/expirado
+    @staticmethod
+    def confirmar_token(token, expiracao=3600):
+        try:
+            email = serializer.loads(token, salt='confirm-email', max_age=expiracao)
+        except Exception:
+            return None
+        return email
+
 
 class PedidoSeguir(db.Model):
     __tablename__ = 'pedido_seguir'
