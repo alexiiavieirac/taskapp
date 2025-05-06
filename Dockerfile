@@ -1,43 +1,35 @@
 # Usa imagem leve do Python
 FROM python:3.11-slim
 
-# Evita prompts na instalação de pacotes do sistema
+# Evita prompts interativos
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instala dependências do sistema necessárias para compilar pacotes Python
+# Instala pacotes essenciais do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
-    default-libmysqlclient-dev \
     build-essential \
     libssl-dev \
     libffi-dev \
+    default-libmysqlclient-dev \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia o arquivo requirements.txt da raiz do projeto para o container
-COPY requirements.txt /tmp/requirements.txt
-
-# Instala dependências
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r /tmp/requirements.txt
-
-RUN pip install gunicorn gevent
-RUN pip install python-dotenv
-
-
-# Define o diretório de trabalho dentro do container
+# Cria diretório de trabalho
 WORKDIR /app
 
-# Copia todo o restante do projeto para dentro do container
+# Copia o requirements.txt primeiro (melhora cache)
+COPY requirements.txt .
+
+# Instala dependências em um único passo
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copia o restante da aplicação
 COPY . .
 
-# Expõe a porta padrão do Flask
+# Expõe a porta 5000 (do Gunicorn)
 EXPOSE 5000
 
-# Define ambiente de produção para o Flask (opcional)
-ENV FLASK_ENV=production
-
-# Comando de inicialização da aplicação
+# Comando de inicialização com Gunicorn
 CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000", "--worker-class", "gevent"]
-
