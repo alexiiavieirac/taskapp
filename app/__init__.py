@@ -21,6 +21,9 @@ def create_app():
         SQLALCHEMY_TRACK_MODIFICATIONS=False
     )
 
+    mail.init_mail(app)  
+    mail.init_app(app)
+
     #app.register_blueprint(conexao_bp)
     #app.register_blueprint(auth_bp)
 
@@ -32,7 +35,6 @@ def create_app():
     Migrate(app, db)
     login_manager.init_app(app)
     init_login_manager(app)
-    mail.init_app(app)
     socketio.init_app(app)
 
     app.extensions['socketio'] = socketio
