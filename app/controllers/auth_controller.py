@@ -1,9 +1,8 @@
-from flask import render_template, request, flash, redirect, url_for, session
+from flask import current_app, render_template, request, flash, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
-import app
 from app.extensions import mail
 from app.extensions.serializer import generate_token, confirm_token
 from app.utils.network_utils import is_safe_url
@@ -62,7 +61,7 @@ def register():
             flash("Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada.", "register-info")
         except Exception as e:
             # Log de erro no envio de e-mail
-            app.logger.error(f"Erro ao enviar e-mail: {e}")
+            current_app.logger.error(f"Erro ao enviar e-mail: {e}")
             flash("Erro ao enviar o e-mail de confirmação. Tente novamente mais tarde.", "register-danger")
             return redirect(url_for('main.register'))
 
