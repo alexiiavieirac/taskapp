@@ -8,6 +8,7 @@ from app.extensions.database import init_db
 from app.extensions.login_manager import init_login_manager
 from app.controllers.auth_controller import main_bp
 from flask_migrate import Migrate
+from app.extensions.mail import init_mail
 
 def create_app():
     app = Flask( __name__,
@@ -21,7 +22,7 @@ def create_app():
         SQLALCHEMY_TRACK_MODIFICATIONS=False
     )
 
-    mail.init_mail(app)  
+    init_mail(app)  
     mail.init_app(app)
 
     #app.register_blueprint(conexao_bp)
