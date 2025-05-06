@@ -1,6 +1,8 @@
 import os
 from flask_mail import Mail
+from dotenv import load_dotenv
 
+load_dotenv()
 mail = Mail()
 
 def init_mail(app):

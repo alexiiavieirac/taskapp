@@ -53,12 +53,18 @@ def register():
         confirm_url = url_for('main.confirmar_email', token=token, _external=True)
 
         # Envia o e-mail de confirmação
-        msg = Message("Confirme seu cadastro", recipients=[novo_usuario.email])
-        msg.body = f"Olá {novo_usuario.nome}, clique no link para confirmar seu e-mail: {confirm_url}"
-        msg.html = render_template("email/confirm_email.html", confirm_url=confirm_url, nome=novo_usuario.nome)
-        mail.send(msg)
+        try:
+            msg = Message("Confirme seu cadastro", recipients=[novo_usuario.email])
+            msg.body = f"Olá {novo_usuario.nome}, clique no link para confirmar seu e-mail: {confirm_url}"
+            msg.html = render_template("email/confirm_email.html", confirm_url=confirm_url, nome=novo_usuario.nome)
+            mail.send(msg)
+            flash("Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada.", "register-info")
+        except Exception as e:
+            # Log de erro no envio de e-mail
+            app.logger.error(f"Erro ao enviar e-mail: {e}")
+            flash("Erro ao enviar o e-mail de confirmação. Tente novamente mais tarde.", "register-danger")
+            return redirect(url_for('main.register'))
 
-        flash("Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada.", "register-info")
         return redirect(url_for('main.aguardando_confirmacao'))
 
     return render_template("register.html")
