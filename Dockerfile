@@ -32,4 +32,4 @@ COPY . .
 EXPOSE 5000
 
 # Comando de inicialização da aplicação
-CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000", "--worker-class", "gevent"]
+CMD ["gunicorn", "--worker-class", "eventlet", "--bind", "0.0.0.0:5000", "run:app"]
