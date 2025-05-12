@@ -132,3 +132,69 @@ def logout():
     session.pop('grupo_id', None)
     #flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('main.login'))
+
+
+@main_bp.route('/esqueci-senha', methods=['GET', 'POST'])
+def esqueci_senha():
+    if request.method == "POST":
+        email = request.form.get("email")
+
+        usuario = Usuario.query.filter_by(email=email).first()
+
+        if usuario:
+            # Gerar token de recuperação de senha
+            token = generate_token(email)
+            reset_url = url_for('main.resetar_senha', token=token, _external=True)
+
+            # Enviar e-mail com link de recuperação
+            msg = Message("Recuperação de Senha", recipients=[email])
+            msg.body = f"Olá, clique no link para redefinir sua senha: {reset_url}"
+            msg.html = render_template("email/reset_email.html", reset_url=reset_url)
+
+            try:
+                mail.send(msg)
+                flash("E-mail de recuperação enviado. Verifique sua caixa de entrada.", "info")
+            except Exception as e:
+                current_app.logger.error(f"Erro ao enviar e-mail: {e}")
+                flash("Erro ao enviar o e-mail de recuperação. Tente novamente.", "danger")
+                return redirect(url_for('main.esqueci_senha'))
+
+            return redirect(url_for('main.aguardando_email'))
+        else:
+            flash("E-mail não encontrado.", "danger")
+
+    return render_template("esqueci_senha.html")
+
+
+@main_bp.route('/resetar-senha/<token>', methods=['GET', 'POST'])
+def resetar_senha(token):
+    email = confirm_token(token)
+
+    if not email:
+        flash("O link de recuperação é inválido ou expirou.", "danger")
+        return redirect(url_for('main.login'))
+
+    usuario = Usuario.query.filter_by(email=email).first_or_404()
+
+    if request.method == "POST":
+        nova_senha = request.form.get("senha")
+        confirmacao_senha = request.form.get("confirmar_senha")
+
+        if nova_senha != confirmacao_senha:
+            flash("As senhas não coincidem.", "danger")
+            return redirect(url_for('main.resetar_senha', token=token))
+
+        # Verificar se a nova senha é diferente da antiga
+        if check_password_hash(usuario.senha, nova_senha):
+            flash("A nova senha não pode ser igual à anterior.", "danger")
+            return redirect(url_for('main.resetar_senha', token=token))
+
+        # Atualizar senha
+        senha_hash = generate_password_hash(nova_senha)
+        usuario.senha = senha_hash
+        db.session.commit()
+
+        flash("Senha alterada com sucesso. Faça login.", "success")
+        return redirect(url_for('main.login'))
+
+    return render_template("resetar_senha.html")
