@@ -92,11 +92,6 @@ button:hover {
     background: rgb(44, 62, 80);
 }
 
-/* Estilização do campo de Confirmar Senha */
-input[name="confirmar_senha"] {
-    margin-top: 24px; /* Aumenta a distância para o campo anterior */
-}
-
 /* Link de retorno para login */
 .register-link {
     text-align: center;
