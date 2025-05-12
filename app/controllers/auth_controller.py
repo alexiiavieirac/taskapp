@@ -159,7 +159,7 @@ def esqueci_senha():
                 flash("Erro ao enviar o e-mail de recuperação. Tente novamente.", "danger")
                 return redirect(url_for('main.esqueci_senha'))
 
-            return redirect(url_for('main.aguardando_email'))
+            return redirect(url_for('main.aguardando_confirmacao'))
         else:
             flash("E-mail não encontrado.", "danger")
 
