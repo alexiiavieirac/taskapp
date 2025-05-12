@@ -198,3 +198,8 @@ def resetar_senha(token):
         return redirect(url_for('main.login'))
 
     return render_template("resetar_senha.html")
+
+
+@main_bp.route('/aguardando-email')
+def aguardando_email():
+    return render_template("aguardando_email.html")
