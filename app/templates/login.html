@@ -30,7 +30,7 @@
         <input type="password" name="senha" placeholder="Senha" required>
         <button type="submit">Entrar</button>
         <p class="recover-link">
-            <a href="{{ url_for('auth.recuperar_senha') }}">Esqueci minha senha</a>
+            <a href="{{ url_for('main.recuperar_senha') }}">Esqueci minha senha</a>
         </p>
         <p class="register-link">Não tem conta? <a href="{{ url_for('main.register') }}">Registrar</a></p>
     </form>
