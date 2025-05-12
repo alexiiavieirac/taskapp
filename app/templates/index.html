@@ -107,6 +107,13 @@
         </div>
     </div>
 
+    <!-- Navegação de Tarefas -->
+    <div class="navegacao-tarefas">
+        <button class="data-btn" onclick="window.location.href='/tarefas/ontem'">📅 Ontem</button>
+        <button class="data-btn" onclick="window.location.href='/tarefas/hoje'">📅 Hoje</button>
+        <button class="data-btn" onclick="window.location.href='/tarefas/amanha'">📅 Amanhã</button>
+    </div>
+
     <div class="container">
         <h1>Minhas Tarefas</h1>
     
@@ -118,8 +125,6 @@
     
         {% for tarefa in tarefas %}
             <div class="tarefa-item" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 16px; padding: 10px; background-color: #f9f9f9; border-radius: 8px;">
-
-                <!-- Conteúdo da tarefa (descrição + imagem) -->
                 <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
                     <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
                         {% if tarefa.concluida %}
@@ -141,7 +146,6 @@
                     {% endif %}
                 </div>
 
-                <!-- Botão de adicionar imagem -->
                 {% if tarefa.usuario_id == current_user.id %}
                 <form action="{{ url_for('main.enviar_imagem', id=tarefa.id) }}" method="POST" enctype="multipart/form-data" class="form-imagem">
                     <label for="imagem-{{ tarefa.id }}" class="botao-imagem">📷</label>
@@ -149,7 +153,6 @@
                 </form>
                 {% endif %}
 
-                <!-- Ações -->
                 <div class="acoes" style="display: flex; align-items: center; gap: 8px;">
                     <a href="/concluir/{{ tarefa.id }}">
                         {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
@@ -163,7 +166,7 @@
                     {% endif %}
                 </div>
             </div>
-            {% endfor %}
+        {% endfor %}
 
     </div>
     

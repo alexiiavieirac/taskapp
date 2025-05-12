@@ -18,6 +18,9 @@ class Tarefa(db.Model):
 
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_conclusao = db.Column(db.DateTime, nullable=True)
+
+    data_planejada = db.Column(db.DateTime, default=datetime.today)
+
     concluida = db.Column(db.Boolean, default=False)
     ativa = db.Column(db.Boolean, default=True)
 

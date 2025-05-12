@@ -77,7 +77,8 @@ def index():
     ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
     .filter(
         Usuario.grupo_id == grupo_id,
-        Tarefa.concluida == True
+        Tarefa.concluida == True,
+        Tarefa.ativa == True
     ).group_by(Usuario.id, Usuario.nome) \
     .order_by(func.count(Tarefa.id).desc()) \
     .all()
@@ -130,6 +131,10 @@ def concluir(id):
     if tarefa.grupo_id != current_user.grupo_id:
         abort(403)
 
+    if not tarefa.ativa:
+        flash("Esta tarefa está desativada.")
+        return redirect("/")
+
     # Se já está concluída
     if tarefa.concluida:
         # Só quem concluiu pode desmarcar
@@ -140,7 +145,6 @@ def concluir(id):
             flash("Tarefa desmarcada com sucesso!")
         else:
             flash("Apenas quem concluiu a tarefa pode desmarcá-la.")
-            return redirect("/")
     else:
         # Marca como concluída por quem clicou
         tarefa.concluida = True
@@ -153,6 +157,7 @@ def concluir(id):
 
 
 @main_bp.route("/deletar/<int:id>")
+@login_required
 def deletar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
@@ -177,9 +182,16 @@ def editar(id):
     if tarefa.usuario_id != current_user.id:
         abort(403)  # Proibido
 
+    if not tarefa.ativa:
+        flash("Tarefa desativada não pode ser editada.")
+        return redirect("/")
+
     if request.method == "POST":
-        tarefa.descricao = request.form["descricao"].strip()
+        nova_desc = request.form["descricao"].strip()
         nova_imagem = request.files.get("imagem")
+
+        if nova_desc:
+            tarefa.descricao = nova_desc
 
         if nova_imagem and nova_imagem.filename != "":
             # Se já existe uma imagem antiga, remove ela
