@@ -149,7 +149,7 @@ def esqueci_senha():
             # Enviar e-mail com link de recuperação
             msg = Message("Recuperação de Senha", recipients=[email])
             msg.body = f"Olá, clique no link para redefinir sua senha: {reset_url}"
-            msg.html = render_template("/reset_email.html", reset_url=reset_url)
+            msg.html = render_template("email/reset_email.html", reset_url=reset_url)
 
             try:
                 mail.send(msg)
@@ -159,7 +159,7 @@ def esqueci_senha():
                 flash("Erro ao enviar o e-mail de recuperação. Tente novamente.", "danger")
                 return redirect(url_for('main.esqueci_senha'))
 
-            return redirect(url_for('main.reset_email'))
+            return redirect(url_for('main.aguardando_email'))
         else:
             flash("E-mail não encontrado.", "danger")
 
