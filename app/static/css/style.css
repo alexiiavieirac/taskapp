@@ -399,26 +399,3 @@ h1 {
 .notificacao-label.vazio {
   display: none !important;
 }
-
-/* Estilo dos botões de navegação de data */
-.navegacao-tarefas {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.data-btn {
-  padding: 10px 20px;
-  background-color: #3498db;
-  color: white;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.data-btn:hover {
-  background-color: #2980b9;
-}

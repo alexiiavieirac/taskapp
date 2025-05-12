@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from flask import abort, app, current_app, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -77,8 +77,7 @@ def index():
     ).join(Tarefa, Tarefa.usuario_id == Usuario.id) \
     .filter(
         Usuario.grupo_id == grupo_id,
-        Tarefa.concluida == True,
-        Tarefa.ativa == True
+        Tarefa.concluida == True
     ).group_by(Usuario.id, Usuario.nome) \
     .order_by(func.count(Tarefa.id).desc()) \
     .all()
@@ -131,10 +130,6 @@ def concluir(id):
     if tarefa.grupo_id != current_user.grupo_id:
         abort(403)
 
-    if not tarefa.ativa:
-        flash("Esta tarefa está desativada.")
-        return redirect("/")
-
     # Se já está concluída
     if tarefa.concluida:
         # Só quem concluiu pode desmarcar
@@ -145,6 +140,7 @@ def concluir(id):
             flash("Tarefa desmarcada com sucesso!")
         else:
             flash("Apenas quem concluiu a tarefa pode desmarcá-la.")
+            return redirect("/")
     else:
         # Marca como concluída por quem clicou
         tarefa.concluida = True
@@ -157,7 +153,6 @@ def concluir(id):
 
 
 @main_bp.route("/deletar/<int:id>")
-@login_required
 def deletar(id):
     tarefa = Tarefa.query.get_or_404(id)
 
@@ -182,16 +177,9 @@ def editar(id):
     if tarefa.usuario_id != current_user.id:
         abort(403)  # Proibido
 
-    if not tarefa.ativa:
-        flash("Tarefa desativada não pode ser editada.")
-        return redirect("/")
-
     if request.method == "POST":
-        nova_desc = request.form["descricao"].strip()
+        tarefa.descricao = request.form["descricao"].strip()
         nova_imagem = request.files.get("imagem")
-
-        if nova_desc:
-            tarefa.descricao = nova_desc
 
         if nova_imagem and nova_imagem.filename != "":
             # Se já existe uma imagem antiga, remove ela
@@ -321,34 +309,3 @@ def excluir_tarefa(id):
     db.session.commit()
     flash("Tarefa excluída com sucesso.")
     return redirect(url_for("main.index"))
-
-@main_bp.route('/ontem', methods=["GET"])
-@login_required
-def ontem():
-    # Calcular a data de ontem
-    ontem = datetime.now(timezone.utc) - timedelta(days=1)
-    # Ajustar para o início e fim do dia de ontem
-    inicio_ontem = ontem.replace(hour=0, minute=0, second=0, microsecond=0)
-    fim_ontem = ontem.replace(hour=23, minute=59, second=59, microsecond=999999)
-
-    # Filtrar tarefas que foram criadas ontem
-    tarefas_ontem = Tarefa.query.filter(
-        Tarefa.grupo_id == current_user.grupo_id,
-        Tarefa.ativa == True,
-        Tarefa.data_criacao >= inicio_ontem,
-        Tarefa.data_criacao <= fim_ontem
-    ).order_by(Tarefa.data_criacao).all()
-
-    grupo_id = current_user.grupo_id
-    grupo = Grupo.query.get_or_404(grupo_id)
-    membros = Usuario.query.filter_by(grupo_id=grupo_id).all()
-
-    # Retornar as tarefas do dia de ontem
-    return render_template(
-        'index.html',
-        tarefas=tarefas_ontem,
-        grupo=grupo,
-        membros=membros,
-        grupo_id=grupo_id,
-        apenas_leitura=True  # Adiciona um flag para tornar tudo somente leitura
-    )
