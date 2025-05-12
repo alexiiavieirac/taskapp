@@ -1,0 +1,119 @@
+/* Resetando margens e padding globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Corpo da página */
+body {
+    font-family: 'Sego UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f1f1f1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Formulário */
+form {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    width: 500px;
+    height: auto;
+}
+
+/* Título do formulário */
+h2 {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Mensagens flash */
+.flash-message {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.05);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Estilo para qualquer sucesso */
+[class*="success"].flash-message {
+    background-color: #e6f9ee;
+    color: #2e7d32;
+    border: 1px solid #c1eac5;
+}
+
+/* Estilo para qualquer danger */
+[class*="danger"].flash-message {
+    background-color: #ffe6e6;
+    color: #c0392b;
+    border: 1px solid #f5c6cb;
+}
+
+/* Estilo para qualquer warning */
+[class*="warning"].flash-message {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* Estilização dos inputs */
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+/* Estilização do botão */
+button {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    padding: 10px;
+    margin-top: 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: rgb(44, 62, 80);
+}
+
+/* Link de retorno para login */
+.register-link {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.register-link a {
+    text-decoration: none;
+    color: #34495e;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
+
+/* Animação para desaparecer em 5 segundos */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+.fade-message {
+    animation: fadeOut 5s ease-in-out forwards;
+}
