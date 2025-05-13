@@ -115,3 +115,18 @@ button:hover {
 .fade-message {
     animation: fadeOut 5s ease-in-out forwards;
 }
+
+/* Link de Esqueci a Senha */
+.recover-link {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.recover-link a {
+    text-decoration: none;
+    color: #34495e;
+}
+
+.recover-link a:hover {
+    text-decoration: underline;
+}
