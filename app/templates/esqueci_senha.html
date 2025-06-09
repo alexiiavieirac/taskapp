@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar e-mail de recuperação</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/esqueci_senha.css') }}">
+</head>
+<body>
+    <form method="POST">
+        <div class="form-group">
+            <label for="email">Digite seu e-mail</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Enviar e-mail de recuperação</button>
+    </form>
+</body>
+</html>
+
+

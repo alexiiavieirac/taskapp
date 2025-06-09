@@ -7,3 +7,5 @@ venv/
 .vscode/
 .idea/
 runtime
+
+app/models

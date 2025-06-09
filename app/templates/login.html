@@ -8,10 +8,31 @@
 <body>
     <form method="POST">
         <h2>Login</h2>
+
+        <!-- Mensagens de feedback -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% if 'login' in category %}
+                        <div class="flash-message flash-{{ category }} fade-message">
+                            {% if category == 'success' %} ✅
+                            {% elif category == 'danger' %} ❌
+                            {% elif category == 'warning' %} ⚠️
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <input type="email" name="email" placeholder="Email" required>
         <input type="password" name="senha" placeholder="Senha" required>
         <button type="submit">Entrar</button>
         <p class="register-link">Não tem conta? <a href="{{ url_for('main.register') }}">Registrar</a></p>
+        <p class="recover-link">
+            <a href="{{ url_for('main.esqueci_senha') }}">Esqueci minha senha</a>
+        </p>
     </form>
 </body>
 </html>

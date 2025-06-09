@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>Registrar</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, post-check=0, pre-check=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 </head>
 <body>
     <form method="POST">
@@ -13,13 +17,15 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="flash-message flash-{{ category }}">
-                {% if category == 'success' %} ✅
-                {% elif category == 'danger' %} ❌
-                {% elif category == 'warning' %} ⚠️
-                {% endif %}
-                {{ message }}
-              </div>
+              {% if 'register' in category %}    
+                <div class="flash-message flash-{{ category }}">
+                  {% if category == 'success' %} ✅
+                  {% elif category == 'danger' %} ❌
+                  {% elif category == 'warning' %} ⚠️
+                  {% endif %}
+                  {{ message }}
+                </div>
+              {% endif %}
             {% endfor %}
           {% endif %}
         {% endwith %}
@@ -32,5 +38,24 @@
 
         <p class="login-link">Já tem conta? <a href="{{ url_for('main.login') }}">Login</a></p>
     </form>
+
+    <!-- Script para remover as mensagens flash após 5 segundos -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const flashMessages = document.querySelectorAll('.flash-message');
+    
+        flashMessages.forEach(message => {
+          // Aplica fade-out após 5 segundos
+          setTimeout(() => {
+            message.classList.add('fade-out');
+          }, 5000);
+    
+          // Remove o elemento após a transição (6 segundos)
+          setTimeout(() => {
+            message.remove(); // Remove do DOM completamente
+          }, 6000);
+        });
+      });
+    </script>
 </body>
 </html>

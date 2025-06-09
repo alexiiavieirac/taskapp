@@ -3,8 +3,17 @@ from itsdangerous import URLSafeTimedSerializer
 s = None
 
 def init_serializer(app):
-    app.config['serializer'] = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    global s
+    s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 
-def get_serializer(app):
-    return app.config.get('serializer', None)
+def generate_token(email):
+    return s.dumps(email, salt='email-confirm-salt')
+
+
+def confirm_token(token, expiration=3600):
+    try:
+        email = s.loads(token, salt='email-confirm-salt', max_age=expiration)
+    except Exception:
+        return None
+    return email

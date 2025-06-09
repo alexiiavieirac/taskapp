@@ -3,7 +3,7 @@ from app.extensions import db
 
 class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), unique=True, nullable=False)
+    nome = db.Column(db.String(100), nullable=False)
 
     usuarios = db.relationship(
         'Usuario', 
@@ -24,10 +24,6 @@ class Grupo(db.Model):
     convites = db.relationship('ConviteGrupo', backref='grupo', lazy=True)
     pedidos = db.relationship('SolicitacaoGrupo', backref='grupo', lazy=True)
 
-    __table_args__ = (
-        db.UniqueConstraint('nome', name='uq_grupo_nome'),
-    )
-
 
 class ConviteGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +32,8 @@ class ConviteGrupo(db.Model):
     token = db.Column(db.String(64), unique=True, nullable=False)
     status = db.Column(db.String(20), default='pendente')
     data_envio = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
 class SolicitacaoGrupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     solicitante_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)

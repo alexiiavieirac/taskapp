@@ -1,4 +1,4 @@
-# Usa imagem leve do Python
+#Usa imagem leve do Python
 FROM python:3.11-slim
 
 # Evita prompts na instalação de pacotes do sistema
@@ -31,9 +31,5 @@ COPY . .
 # Expõe a porta padrão do Flask
 EXPOSE 5000
 
-# Define ambiente de produção para o Flask (opcional)
-ENV FLASK_ENV=production
-
 # Comando de inicialização da aplicação
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--worker-class", "gevent"]
-
+CMD ["gunicorn", "--worker-class", "eventlet", "--bind", "0.0.0.0:5000", "run:app"]

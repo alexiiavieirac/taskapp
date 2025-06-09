@@ -21,8 +21,8 @@ form {
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 0 12px rgba(0,0,0,0.1);
-    width: 500px;
-    height: 400px;
+    width: 600px;
+    height: 450px;
     position: relative;
 }
 
@@ -40,19 +40,30 @@ form {
     font-weight: 500;
     font-size: 14px;
     box-shadow: 0 0 6px rgba(0,0,0,0.05);
-    transition: all 0.3s ease-in-out;
+    transition: opacity 1s ease-out; /* Animação de transição suave */
 }
 
-.flash-success {
-    background-color: #e6f9ee;
-    color: #2e7d32;
-    border: 1px solid #c1eac5;
+[class*="success"].flash-message {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
 }
 
-.flash-danger {
-    background-color: #ffe6e6;
-    color: #c0392b;
-    border: 1px solid #f5c6cb;
+[class*="danger"].flash-message {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+[class*="warning"].flash-message {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+/* Efeito de fade-out */
+.flash-message.fade-out {
+    opacity: 0;
 }
 
 /* Estilo dos inputs */
@@ -97,4 +108,15 @@ button:hover {
 
 h2 {
     margin-bottom: 15px;
+}
+
+/* Animação para desaparecer em 5 segundos */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+.fade-message {
+    animation: fadeOut 5s ease-in-out forwards;
 }

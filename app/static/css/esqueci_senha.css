@@ -22,13 +22,16 @@ form {
     border-radius: 12px;
     box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     width: 500px;
-    height: 350px;
+    height: auto;
 }
 
 /* Título do formulário */
 h2 {
     text-align: center;
     margin-bottom: 16px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2c3e50;
 }
 
 /* Mensagens flash */
@@ -43,7 +46,7 @@ h2 {
     transition: all 0.3s ease-in-out;
 }
 
-/* Estilo para qualquer sucesso, como login-success ou register-success */
+/* Estilo para qualquer sucesso */
 [class*="success"].flash-message {
     background-color: #e6f9ee;
     color: #2e7d32;
@@ -63,7 +66,6 @@ h2 {
     color: #856404;
     border: 1px solid #ffeeba;
 }
-
 
 /* Estilização dos inputs */
 input {
@@ -90,7 +92,7 @@ button:hover {
     background: rgb(44, 62, 80);
 }
 
-/* Link de registro */
+/* Link de retorno para login */
 .register-link {
     text-align: center;
     margin-top: 10px;
@@ -114,19 +116,4 @@ button:hover {
 
 .fade-message {
     animation: fadeOut 5s ease-in-out forwards;
-}
-
-/* Link de Esqueci a Senha */
-.recover-link {
-    text-align: center;
-    margin-top: 10px;
-}
-
-.recover-link a {
-    text-decoration: none;
-    color: #34495e;
-}
-
-.recover-link a:hover {
-    text-decoration: underline;
 }
