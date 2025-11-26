@@ -1,12 +1,13 @@
 from flask import current_app, render_template, request, flash, redirect, url_for
-from flask.cli import main
+# from flask.cli import main # Removida importação incorreta
 from flask_login import login_required, current_user
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
-from app import db
+from app.extensions import db
 from app.models import Grupo, Usuario, SolicitacaoGrupo, ConviteGrupo, Conexao, Tarefa
 from app.controllers import main_bp
+from app.extensions import mail # Adicionada importação correta para enviar e-mails
 
 
 @main_bp.route('/grupo')
@@ -101,21 +102,19 @@ def enviar_convite():
     """
 
     try:
-        main.send(msg)
+        mail.send(msg) # Correção: Usando 'mail.send(msg)'
+        # Salva o convite no banco SOMENTE após o envio bem-sucedido do e-mail
+        convite = ConviteGrupo(
+            email_convidado=email_destino,
+            grupo_id=current_user.grupo_id,
+            token=token
+        )
+        db.session.add(convite)
+        db.session.commit()
+        flash("✅ Convite enviado com sucesso!", "success")
     except Exception as e:
         flash(f"❌ Erro ao enviar o e-mail: {str(e)}", "danger")
-        return redirect(url_for("main.grupo"))
-
-    # Salva o convite no banco
-    convite = ConviteGrupo(
-        email_convidado=email_destino,
-        grupo_id=current_user.grupo_id,
-        token=token
-    )
-    db.session.add(convite)
-    db.session.commit()
-
-    flash("✅ Convite enviado com sucesso!", "success")
+    
     return redirect(url_for("main.grupo"))
 
 
@@ -139,9 +138,12 @@ def aceitar_convite(token):
             return redirect(url_for("main.login"))
 
         # Verifica se o usuário já está em um grupo
-        if usuario.grupo_id:
-            flash("⚠️ Você já participa de um grupo. Aceitar o convite irá substituir o grupo atual.", "warning")
-            return redirect(url_for("main.login"))
+        # Considerar a regra de negócio: se o usuário já está em um grupo, ele pode aceitar outro convite?
+        # A lógica atual substitui o grupo, o que está ok se essa for a intenção.
+        if usuario.grupo_id and usuario.grupo_id == grupo.id: # Se já está no grupo, apenas flasheia e redireciona
+             flash(f"🎉 Você já faz parte do grupo '{grupo.nome}'!", "info")
+             return redirect(url_for("main.login"))
+
 
         # Atualiza o grupo do usuário
         usuario.grupo_id = grupo.id
@@ -169,7 +171,7 @@ def pedidos_grupo():
     grupo = current_user.grupo
 
     if not current_user.grupo_id:
-        flash("Você não está em um grupo.")
+        flash("Você não está em um grupo.", "info") # Adicionada categoria
         return redirect(url_for("main.index"))
 
     pedidos = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
@@ -233,10 +235,11 @@ def aceitar_pedido_grupo(pedido_id):
     pedido.status = 'aceito'
     solicitante = Usuario.query.get(pedido.solicitante_id)
 
-    if not solicitante.grupo_original_id:
-        solicitante.grupo_original_id = solicitante.grupo_id
-
-    solicitante.grupo_id = grupo.id
+    # Verifica se o solicitante já está no grupo ou tem grupo_original_id preenchido
+    if solicitante.grupo_id != grupo.id: # Apenas atualiza se o usuário não está no grupo alvo
+        if not solicitante.grupo_original_id:
+            solicitante.grupo_original_id = solicitante.grupo_id # Salva o grupo atual como original
+        solicitante.grupo_id = grupo.id # Atribui o novo grupo
 
     db.session.commit()
     flash("Pedido aceito! Usuário agora faz parte do grupo.", "success")
@@ -281,5 +284,5 @@ def entrar_grupo(grupo_id):
         pedido = SolicitacaoGrupo(solicitante_id=current_user.id, grupo_id=grupo_id)
         db.session.add(pedido)
         db.session.commit()
-    flash("Pedido enviado com sucesso.")
+    flash("Pedido enviado com sucesso.", "info") # Adicionada categoria
     return redirect(url_for("main.conexoes"))

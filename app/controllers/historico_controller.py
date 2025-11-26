@@ -1,7 +1,7 @@
 from flask import render_template, request
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from app import db
+from app.extensions import db
 from app.models import Tarefa, Usuario
 from app.controllers import main_bp
 from datetime import datetime, timedelta, timezone
@@ -37,6 +37,7 @@ def historico():
         Tarefa.data_criacao <= fim_dia
     ).group_by(Usuario.id).order_by(func.count(Tarefa.id).desc()).all()
 
+    # Vencedor é pego de forma segura, já tratado anteriormente.
     vencedor = tarefas_por_usuario[0].nome if tarefas_por_usuario else None
 
     dia_anterior = (data - timedelta(days=1)).strftime("%Y-%m-%d")

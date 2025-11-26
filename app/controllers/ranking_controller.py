@@ -1,8 +1,8 @@
-from unittest import case
+from unittest import case # Mantido, assumindo que é para algum uso avançado de case, mas pode ser removido se não for usado
 from flask import render_template
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from app import db
+from app.extensions import db
 from app.models import Tarefa, Usuario, HistoricoRanking
 from app.controllers import main_bp
 from datetime import datetime, timedelta, timezone

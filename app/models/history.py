@@ -2,6 +2,8 @@ from datetime import datetime
 from app.extensions import db
 
 class HistoricoRanking(db.Model):
+    __tablename__ = 'historico_ranking' # Adicionado __tablename__ para consistência
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)

@@ -1,5 +1,4 @@
 .env
-instance/taskapp.db
 __pycache__/
 migrations/
 *.pyc
@@ -8,4 +7,4 @@ venv/
 .idea/
 runtime
 
-app/models
+

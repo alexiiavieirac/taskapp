@@ -1,8 +1,16 @@
 from datetime import datetime, timezone
 from flask_login import UserMixin
-from app.extensions import serializer
-from app.extensions.database import db
+# from app.extensions import serializer # REMOVIDO: Funções de serializer são chamadas diretamente do módulo
+from app.extensions import db # Simplificado import para consistência
 from app.models.connection import Conexao
+# from app.extensions.serializer import s as serializer # Importa 's' se realmente precisar acessar o objeto Serializer diretamente,
+                                                       # mas as funções generate_token e confirm_token já estão em escopo global no auth_controller.
+
+# Se as funções de serialização forem usadas fora do auth_controller (ex: em outros modelos ou utilitários)
+# e você quiser manter a sintaxe Usuario.gerar_token_confirmacao(), então
+# seria mais apropriado ter um módulo utilitário para isso, ou reimportar as funções.
+# Para manter a centralização da lógica de token no módulo serializer, vamos remover as duplicadas aqui.
+from app.extensions.serializer import generate_token, confirm_token as confirm_token_ext # Renomeado para evitar conflito com método
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuario'
@@ -21,6 +29,14 @@ class Usuario(UserMixin, db.Model):
 
     email_verificado = db.Column(db.Boolean, default=False)
 
+    # Relacionamento para grupos que o usuário é proprietário
+    grupos_proprietario = db.relationship(
+        'Grupo', 
+        foreign_keys='Grupo.proprietario_id', 
+        back_populates='proprietario', 
+        lazy=True
+    )
+
     # Conexões de quem o usuário segue
     seguindo_conexoes = db.relationship(
         'Conexao',
@@ -37,24 +53,40 @@ class Usuario(UserMixin, db.Model):
         lazy='dynamic'
     )
 
+    # Relacionamento para tarefas criadas pelo usuário
+    tarefas_criadas = db.relationship(
+        'Tarefa',
+        foreign_keys='Tarefa.usuario_id',
+        back_populates='criador',
+        lazy='dynamic'
+    )
+
+    # Relacionamento para tarefas concluídas pelo usuário
+    tarefas_concluidas_por = db.relationship(
+        'Tarefa',
+        foreign_keys='Tarefa.concluida_por',
+        back_populates='concluidor',
+        lazy='dynamic'
+    )
+
     # Verifica se o usuário já segue outro
     def is_following(self, usuario):
         return self.seguindo_conexoes.filter(
             Conexao.seguido_id == usuario.id
         ).count() > 0
     
-    # 🔑 Gerar token de verificação de e-mail
-    def gerar_token_confirmacao(self):
-        return serializer.dumps(self.email, salt='confirm-email')
+    # 🔑 Gerar token de verificação de e-mail - REMOVIDO: Usar app.extensions.serializer.generate_token
+    # def gerar_token_confirmacao(self):
+    #     return serializer.dumps(self.email, salt='confirm-email')
 
-    # ✅ Confirmar token e retornar e-mail, ou None se inválido/expirado
-    @staticmethod
-    def confirmar_token(token, expiracao=3600):
-        try:
-            email = serializer.loads(token, salt='confirm-email', max_age=expiracao)
-        except Exception:
-            return None
-        return email
+    # ✅ Confirmar token e retornar e-mail, ou None se inválido/expirado - REMOVIDO: Usar app.extensions.serializer.confirm_token
+    # @staticmethod
+    # def confirmar_token(token, expiracao=3600):
+    #     try:
+    #         email = serializer.loads(token, salt='confirm-email', max_age=expiracao)
+    #     except Exception:
+    #         return None
+    #     return email
 
 
 class PedidoSeguir(db.Model):
@@ -69,5 +101,5 @@ class PedidoSeguir(db.Model):
     visto = db.Column(db.Boolean, default=False)
     data_visto = db.Column(db.DateTime(), nullable=True)
 
-    remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados')
-    destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos')
+    remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados_seguir') # backref mais específico
+    destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos_seguir') # backref mais específico

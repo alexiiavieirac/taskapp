@@ -2,7 +2,8 @@ from flask import current_app, render_template, request, flash, redirect, url_fo
 from flask_login import login_user, logout_user, login_required
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import db
+# CORREÇÃO: Importar 'db' diretamente de app.extensions
+from app.extensions import db # <--- AQUI ESTÁ A MUDANÇA
 from app.extensions import mail
 from app.extensions.serializer import generate_token, confirm_token
 from app.utils.network_utils import is_safe_url
@@ -40,13 +41,6 @@ def register():
         novo_usuario = Usuario(nome=nome, email=email, senha=senha_hash, grupo_id=grupo.id, grupo_original_id=grupo.id, email_verificado=False)
         db.session.add(novo_usuario)
         db.session.commit()
-
-        # Login automático após registro
-        # login_user(novo_usuario)
-        # session['grupo_id'] = novo_usuario.grupo_id
-        # flash("Usuário registrado e logado com sucesso!", "register-success")
-
-        #return redirect(url_for('main.index'))
 
         # Gera token de confirmação
         token = generate_token(novo_usuario.email)
@@ -112,8 +106,6 @@ def login():
 
             login_user(usuario, remember=True)
             session['grupo_id'] = usuario.grupo_id
-            #flash('Login realizado com sucesso!', 'login-success')
-
             next_page = request.args.get('next')
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
@@ -130,7 +122,6 @@ def logout():
     # Rota para logout de usuários
     logout_user()
     session.pop('grupo_id', None)
-    #flash('Logout realizado com sucesso.', 'info')
     return redirect(url_for('main.login'))
 
 
@@ -187,6 +178,11 @@ def resetar_senha(token):
         # Verificar se a nova senha é diferente da antiga
         if check_password_hash(usuario.senha, nova_senha):
             flash("A nova senha não pode ser igual à anterior.", "danger")
+            return redirect(url_for('main.resetar_senha', token=token))
+
+        # Valida a nova senha com a função padronizada
+        if not validar_senha(nova_senha):
+            flash("A nova senha deve ter entre 8 e 15 caracteres, incluindo uma letra maiúscula, um número e um caractere especial.", "danger")
             return redirect(url_for('main.resetar_senha', token=token))
 
         # Atualizar senha

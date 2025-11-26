@@ -1,14 +1,16 @@
 from datetime import datetime, timezone
-from flask import abort, app, current_app, render_template, request, flash, redirect, url_for
+# from flask import abort, app, current_app, render_template, request, flash, redirect, url_for # Removida importação 'app' duplicada
+from flask import abort, current_app, render_template, request, flash, redirect, url_for # Correção da importação
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
-from app import db
+from app.extensions import db
 from app.models import Tarefa, Usuario, Grupo, Conexao, SolicitacaoGrupo, PedidoSeguir
 from app.controllers import main_bp
 import os
 from app.utils.date_utils import obter_limites_semana
 from app.utils.task_service import adicionar_tarefa
+from app.constants import TAREFAS_PRE_ESTABELECIDAS # Importada lista de constantes
 
 
 @main_bp.route('/', methods=["GET", "POST"])
@@ -17,21 +19,8 @@ def index():
     grupo_id = current_user.grupo_id
     semana = obter_limites_semana()
 
-    # Tarefas pré-estabelecidas (iguais às de tarefas_diarias)
-    tarefas_pre_estabelecidas = [
-        "Lavar louça",
-        "Varrer a casa",
-        "Passar pano nos móveis",
-        "Lavar banheiro",
-        "Retirar lixos",
-        "Recolher roupa",
-        "Estender roupa",
-        "Colocar roupa para lavar",
-        "Arrumar o quarto",
-        "Guardar as roupas",
-        "Fazer comida",
-        "Fazer compras"
-    ]
+    # Tarefas pré-estabelecidas (agora importadas de app.constants)
+    # tarefas_pre_estabelecidas = [ ... ] # Removida definição duplicada
 
     if request.method == "POST":
         descricao = request.form["descricao"].strip()
@@ -39,14 +28,14 @@ def index():
         nome_imagem = None
 
         # Verifica se é uma tarefa pré-estabelecida
-        if descricao in tarefas_pre_estabelecidas:
-            flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.")
+        if descricao in TAREFAS_PRE_ESTABELECIDAS:
+            flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.", "warning") # Adicionada categoria
             return redirect(url_for("main.index"))
 
         # Verifica se a tarefa já existe no banco de dados para o mesmo grupo
         tarefa_existente = Tarefa.query.filter_by(descricao=descricao, grupo_id=grupo_id, ativa=True).first()
         if tarefa_existente:
-            flash("Essa tarefa já foi adicionada anteriormente.")
+            flash("Essa tarefa já foi adicionada anteriormente.", "info") # Adicionada categoria
             return redirect(url_for("main.index"))
 
         if imagem and imagem.filename != "":
@@ -64,6 +53,7 @@ def index():
 
         db.session.add(nova_tarefa)
         db.session.commit()
+        flash("Tarefa adicionada com sucesso!", "success") # Adicionada mensagem de sucesso
 
         return redirect("/")
 
@@ -95,14 +85,13 @@ def index():
     conexoes_count = sum(1 for conexao in conexoes if not conexao.visto)
 
     # ======================================
-    # Marcar notificações como vistas
-    # ====================================== 
-    PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-    SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-    Conexao.query.filter_by(seguido_id=current_user.id).update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-
-    # Commit para salvar as alterações no banco
-    db.session.commit()
+    # Removido: Lógica de marcar notificações como vistas na rota index
+    # Esta lógica deve ocorrer apenas quando o usuário interage diretamente com as notificações.
+    # PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+    # SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+    # Conexao.query.filter_by(seguido_id=current_user.id).update({"visto": True, "data_visto": datetime.now(timezone.utc)})
+    # db.session.commit()
+    # ======================================
 
     total_notificacoes = pedidos_seguir_count + pedidos_grupo_count + conexoes_count
 
@@ -128,6 +117,7 @@ def concluir(id):
 
     # Verifica se o usuário pertence ao mesmo grupo
     if tarefa.grupo_id != current_user.grupo_id:
+        flash("Você não tem permissão para concluir/desmarcar esta tarefa.", "danger") # Adicionada mensagem
         abort(403)
 
     # Se já está concluída
@@ -137,16 +127,16 @@ def concluir(id):
             tarefa.concluida = False
             tarefa.concluida_por = None
             tarefa.data_conclusao = None  # limpa a data
-            flash("Tarefa desmarcada com sucesso!")
+            flash("Tarefa desmarcada com sucesso!", "info") # Adicionada categoria
         else:
-            flash("Apenas quem concluiu a tarefa pode desmarcá-la.")
+            flash("Apenas quem concluiu a tarefa pode desmarcá-la.", "warning") # Adicionada categoria
             return redirect("/")
     else:
         # Marca como concluída por quem clicou
         tarefa.concluida = True
         tarefa.concluida_por = current_user.id
         tarefa.data_conclusao = datetime.now(timezone.utc)  # registra o momento
-        flash("Tarefa concluída com sucesso!")
+        flash("Tarefa concluída com sucesso!", "success") # Adicionada categoria
 
     db.session.commit()
     return redirect("/")
@@ -158,13 +148,13 @@ def deletar(id):
 
     # Verifica se o usuário pertence ao mesmo grupo
     if tarefa.grupo_id != current_user.grupo_id:
-        flash("Você não pode excluir esta tarefa.")
+        flash("Você não pode excluir esta tarefa.", "danger")
         return redirect("/")
 
     # Marca como inativa, não deleta
     tarefa.ativa = False
     db.session.commit()
-    #flash("Tarefa excluída com sucesso.")
+    flash("Tarefa excluída com sucesso.", "success") # Removido comentário e adicionada categoria
     return redirect("/")
 
 
@@ -175,10 +165,11 @@ def editar(id):
 
     # Verifica se o usuário atual é o criador da tarefa
     if tarefa.usuario_id != current_user.id:
+        flash("Você não tem permissão para editar esta tarefa.", "danger") # Adicionada mensagem
         abort(403)  # Proibido
 
     if request.method == "POST":
-        tarefa.descricao = request.form["descricao"].strip()
+        descricao = request.form["descricao"].strip()
         nova_imagem = request.files.get("imagem")
 
         if nova_imagem and nova_imagem.filename != "":
@@ -192,8 +183,9 @@ def editar(id):
             nova_imagem.save(os.path.join(current_app.config['UPLOAD_FOLDER'], nome_imagem))
             tarefa.imagem = nome_imagem
 
+        tarefa.descricao = descricao # Move para cá para garantir que a descrição seja atualizada
         db.session.commit()
-        flash("Tarefa editada com sucesso!")
+        flash("Tarefa editada com sucesso!", "success") # Adicionada categoria
         return redirect("/")
 
     return render_template("editar.html", tarefa=tarefa)
@@ -202,20 +194,8 @@ def editar(id):
 @main_bp.route("/tarefas_diarias", methods=["GET", "POST"])
 @login_required
 def tarefas_diarias():
-    tarefas_pre_estabelecidas = [
-        "Lavar louça",
-        "Varrer a casa",
-        "Passar pano nos móveis",
-        "Lavar banheiro",
-        "Retirar lixos",
-        "Recolher roupa",
-        "Estender roupa",
-        "Colocar roupa para lavar",
-        "Arrumar o quarto",
-        "Guardar as roupas",
-        "Fazer comida",
-        "Fazer compras"
-    ]
+    # Tarefas pré-estabelecidas (agora importadas de app.constants)
+    # tarefas_pre_estabelecidas = [ ... ] # Removida definição duplicada
 
     if request.method == "POST":
         # Tarefas selecionadas (pré-estabelecidas)
@@ -229,7 +209,7 @@ def tarefas_diarias():
             adicionar_tarefa(descricao, current_user.grupo_id, current_user.id)
 
         # Adiciona a nova tarefa personalizada, se não estiver nas pré-estabelecidas nem já no banco
-        if nova_tarefa and nova_tarefa not in tarefas_pre_estabelecidas:
+        if nova_tarefa and nova_tarefa not in TAREFAS_PRE_ESTABELECIDAS:
             # Verifica se a tarefa personalizada já existe no banco antes de adicionar
             existe_personalizada = Tarefa.query.filter_by(
                 descricao=nova_tarefa,
@@ -241,10 +221,10 @@ def tarefas_diarias():
 
         # Commit das mudanças no banco de dados
         db.session.commit()
-        #flash("Tarefas adicionadas com sucesso!")
+        flash("Tarefas adicionadas com sucesso!", "success") # Removido comentário e adicionada categoria
         return redirect(url_for("main.tarefas_diarias"))
 
-    return render_template("tarefas_diarias.html", tarefas=tarefas_pre_estabelecidas)
+    return render_template("tarefas_diarias.html", tarefas=TAREFAS_PRE_ESTABELECIDAS) # Usando a constante
 
 
 @main_bp.route("/imagem/<int:id>", methods=["POST"])
@@ -263,6 +243,7 @@ def enviar_imagem(id):
         imagem.save(os.path.join(current_app.config['UPLOAD_FOLDER'], nome_imagem))
         tarefa.imagem = nome_imagem
         db.session.commit()
+        flash("Imagem enviada/atualizada com sucesso!", "success") # Adicionada mensagem de sucesso
 
     return redirect("/")
 
@@ -273,6 +254,7 @@ def remover_imagem(id):
     tarefa = Tarefa.query.get_or_404(id)
 
     if tarefa.usuario_id != current_user.id:
+        flash("Você não tem permissão para remover a imagem desta tarefa.", "danger") # Adicionada mensagem
         abort(403)  # Não autorizado
 
     if tarefa.imagem:
@@ -281,6 +263,7 @@ def remover_imagem(id):
             os.remove(caminho_imagem)
         tarefa.imagem = None
         db.session.commit()
+        flash("Imagem removida com sucesso!", "success") # Adicionada mensagem de sucesso
 
     return redirect(url_for('main.index'))
 
@@ -292,20 +275,21 @@ def excluir_tarefa(id):
 
     # Verifica se a tarefa pertence ao grupo do usuário logado
     if tarefa.grupo_id != current_user.grupo_id:
-        abort(403)
+        flash("Você não tem permissão para excluir esta tarefa.", "danger")
+        abort(403) # Não autorizado
 
-    # Impede a exclusão se a tarefa não tiver um dono definido
+    # Impede a exclusão se a tarefa não tiver um dono definido (tarefa padrão do grupo)
     if tarefa.usuario_id is None:
-        #flash("Essa tarefa padrão não pode ser excluída.")
+        flash("Essa tarefa padrão não pode ser excluída por aqui.", "warning") # Descomentado e adicionada categoria
         return redirect(url_for("main.index"))
 
     # Impede se o usuário atual não for o dono da tarefa (mesmo que tenha sido adicionada do tarefas_diarias)
     if tarefa.usuario_id != current_user.id:
-        flash("Você não tem permissão para excluir esta tarefa.")
+        flash("Você não tem permissão para excluir esta tarefa.", "danger")
         return redirect(url_for("main.index"))
 
     # Marca como inativa ao invés de deletar
     tarefa.ativa = False
     db.session.commit()
-    flash("Tarefa excluída com sucesso.")
+    flash("Tarefa excluída com sucesso.", "success")
     return redirect(url_for("main.index"))

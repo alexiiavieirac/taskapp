@@ -13,4 +13,6 @@ def init_login_manager(app):
         try:
             return db.session.get(Usuario, int(user_id))
         except (ValueError, TypeError):
+            # É uma boa prática logar este erro para depuração
+            app.logger.warning(f"Tentativa de carregar usuário com ID inválido: {user_id}")
             return None

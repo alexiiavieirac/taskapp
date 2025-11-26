@@ -17,4 +17,3 @@ class Conexao(db.Model):
         db.Index('idx_seguidor_seguido', 'seguidor_id', 'seguido_id'),
         db.UniqueConstraint('seguidor_id', 'seguido_id', name='uq_seguidor_seguido')
     )
-

@@ -1,13 +1,14 @@
-import re
-from flask import app, current_app, render_template, request, flash, redirect, url_for
+import re # Mantido pois regex ainda é usado em validar_senha, que é importado
+from flask import current_app, render_template, request, flash, redirect, url_for
 from werkzeug.security import generate_password_hash
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from app import db
+from app.extensions import db
 from app.controllers import main_bp
 import os
 
 from app.extensions.uploads import allowed_file
+from app.utils.auth_utils import validar_senha # Adicionada importação
 
 
 @main_bp.route('/configuracoes', methods=["GET", "POST"])
@@ -49,10 +50,9 @@ def mudar_senha():
             flash("❌ As senhas não coincidem.", "danger")
             return redirect(url_for('main.mudar_senha'))
 
-        # Validação de senha
-        senha_regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$'
-        if not re.match(senha_regex, nova_senha):
-            flash("❌ A senha deve ter entre 8 e 15 caracteres, com letras maiúsculas, minúsculas e caracteres especiais.", "danger")
+        # Validação de senha - Usando a função padronizada 'validar_senha'
+        if not validar_senha(nova_senha): # Substitui o bloco com regex local
+            flash("❌ A senha deve ter entre 8 e 15 caracteres, com letras maiúsculas, minúsculas, um número e um caractere especial.", "danger")
             return redirect(url_for('main.mudar_senha'))
 
         # Atualiza a senha

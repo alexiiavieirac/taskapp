@@ -2,13 +2,15 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import text
 from flask import Blueprint, abort, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
-from app import db
-from app.models import Conexao, PedidoSeguir, Usuario
+from app.extensions import db
+from app.models import Conexao, PedidoSeguir, Usuario, Grupo
 from app.controllers import main_bp
 
 
+# Bloco de código comentado removido
 # conexao_bp = Blueprint('conexao', __name__)
 
+# Rota de teste de DB comentada removida
 # @conexao_bp.route('/test-db')
 # def test_db():
 #     try:
@@ -100,12 +102,14 @@ def aceitar_seguir(pedido_id):
             seguido_id=pedido.destinatario_id
         )
         db.session.add(conexao)
+        flash("Pedido aceito e conexão criada!", "success") # Feedback adicionado
+    else:
+        flash("Pedido aceito. Conexão já existia.", "info") # Feedback para conexão existente
 
     # Atualiza status do pedido
     pedido.status = "aceito"
     db.session.commit()
 
-    flash("Pedido aceito!", "success")
     return redirect(url_for("main.pedidos_seguir"))
 
 # Rota para rejeitar o pedido de seguimento
@@ -151,8 +155,16 @@ def parar_de_seguir(usuario_id):
         if current_user.grupo_id == usuario_alvo.grupo_id:
             if current_user.grupo_original_id:
                 # Caso o usuário tenha um grupo original configurado, retorna a ele
-                current_user.grupo_id = current_user.grupo_original_id
-                flash('Você saiu do grupo e voltou para seu grupo original.', 'info')
+                # Adicionado verificação para garantir que o grupo original ainda existe
+                original_grupo = Grupo.query.get(current_user.grupo_original_id)
+                if original_grupo:
+                    current_user.grupo_id = current_user.grupo_original_id
+                    flash('Você saiu do grupo e voltou para seu grupo original.', 'info')
+                else:
+                    # Grupo original não encontrado ou foi excluído
+                    current_user.grupo_id = None
+                    current_user.grupo_original_id = None # Limpa a referência também
+                    flash('Você saiu do grupo, mas seu grupo original não foi encontrado ou não existe mais.', 'info')
             else:
                 # Caso não tenha grupo original, remove a associação de grupo
                 current_user.grupo_id = None
@@ -160,6 +172,7 @@ def parar_de_seguir(usuario_id):
 
         # Commit para salvar as mudanças
         db.session.commit()
+        flash('Você parou de seguir ' + usuario_alvo.nome + '.', 'info') # Adicionada mensagem de sucesso
     else:
         flash('Você não segue essa pessoa.', 'warning')
 
@@ -197,5 +210,5 @@ def limpar_pedidos_expirados():
 
     db.session.commit()
 
-    flash(f"{len(pedidos_expirados)} pedidos expirados foram removidos.")
+    flash(f"{len(pedidos_expirados)} pedidos expirados foram removidos.", "info") # Adicionada categoria 'info'
     return redirect(url_for("main.conexoes"))

@@ -5,7 +5,9 @@
 -- 1. Tabela de Grupo
 CREATE TABLE grupo (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL UNIQUE
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    proprietario_id INT, -- Adicionado para refletir o modelo Python
+    FOREIGN KEY (proprietario_id) REFERENCES usuario(id) -- Adicionado para refletir o modelo Python
 );
 
 -- 2. Tabela de Usuário
@@ -19,6 +21,7 @@ CREATE TABLE usuario (
     avatar VARCHAR(200),
     bio TEXT,
     rede_social VARCHAR(255),
+    email_verificado BOOLEAN DEFAULT FALSE, -- Adicionado para refletir o modelo Python
     FOREIGN KEY (grupo_id) REFERENCES grupo(id),
     FOREIGN KEY (grupo_original_id) REFERENCES grupo(id)
 );
@@ -54,7 +57,7 @@ CREATE TABLE convite_grupo (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email_convidado VARCHAR(120) NOT NULL,
     grupo_id INT NOT NULL,
-    token VARCHAR(64) UNIQUE NOT NULL,
+    token VARCHAR(255) UNIQUE NOT NULL, -- Tamanho ajustado para refletir o modelo Python
     status VARCHAR(20) DEFAULT 'pendente',
     data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (grupo_id) REFERENCES grupo(id)
@@ -84,12 +87,8 @@ CREATE TABLE historico_ranking (
     FOREIGN KEY (grupo_id) REFERENCES grupo(id)
 );
 
--- 9. Tabela de Tarefa Padrão
-CREATE TABLE tarefa_padrao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    descricao VARCHAR(200) NOT NULL,
-    imagem VARCHAR(200)
-);
+-- REMOVIDA A TABELA tarefa_padrao, pois o modelo correspondente foi removido no Python.
+-- Se você precisar de tarefas padrão no DB no futuro, precisará recriar o modelo e a tabela.
 
 -- 10. Tabela de Tarefa (criada por um usuário para o grupo)
 CREATE TABLE tarefa (
@@ -107,3 +106,13 @@ CREATE TABLE tarefa (
     FOREIGN KEY (usuario_id) REFERENCES usuario(id),
     FOREIGN KEY (concluida_por) REFERENCES usuario(id)
 );
+
+-- Índices para otimização de consultas
+CREATE INDEX idx_usuario_grupo ON usuario(grupo_id);
+CREATE INDEX idx_tarefa_grupo_id ON tarefa(grupo_id);
+CREATE INDEX idx_pedido_seguir_destinatario ON pedido_seguir(destinatario_id);
+CREATE INDEX idx_pedido_seguir_remetente ON pedido_seguir(remetente_id); -- Índice adicional útil
+CREATE INDEX idx_conexao_seguidor ON conexao(seguidor_id); -- Índice adicional útil
+CREATE INDEX idx_conexao_seguido ON conexao(seguido_id); -- Índice adicional útil
+CREATE INDEX idx_solicitacao_grupo_solicitante ON solicitacao_grupo(solicitante_id); -- Índice adicional útil
+CREATE INDEX idx_historico_ranking_usuario_grupo ON historico_ranking(usuario_id, grupo_id); -- Índice adicional útil
