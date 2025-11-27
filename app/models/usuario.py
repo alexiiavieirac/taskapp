@@ -1,16 +1,13 @@
+# models/usuario.py
+
 from datetime import datetime, timezone
 from flask_login import UserMixin
-# from app.extensions import serializer # REMOVIDO: Funções de serializer são chamadas diretamente do módulo
-from app.extensions import db # Simplificado import para consistência
-from app.models.connection import Conexao
-# from app.extensions.serializer import s as serializer # Importa 's' se realmente precisar acessar o objeto Serializer diretamente,
-                                                       # mas as funções generate_token e confirm_token já estão em escopo global no auth_controller.
+from app.extensions import db
+from sqlalchemy.orm import foreign # CORRIGIDO: Importar a função foreign de sqlalchemy.orm
 
-# Se as funções de serialização forem usadas fora do auth_controller (ex: em outros modelos ou utilitários)
-# e você quiser manter a sintaxe Usuario.gerar_token_confirmacao(), então
-# seria mais apropriado ter um módulo utilitário para isso, ou reimportar as funções.
-# Para manter a centralização da lógica de token no módulo serializer, vamos remover as duplicadas aqui.
-from app.extensions.serializer import generate_token, confirm_token as confirm_token_ext # Renomeado para evitar conflito com método
+from app.models.connection import Conexao # Verifique o caminho correto para Conexao
+from app.extensions.serializer import generate_token, confirm_token as confirm_token_ext
+# REMOVIDO: from app.models.group import Grupo  <-- Não importamos diretamente aqui para evitar circular import
 
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuario'
@@ -20,8 +17,8 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
 
-    grupo_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=True)
-    grupo_original_id = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=True)
+    grupo_id = db.Column(db.Integer, nullable=True)
+    grupo_original_id = db.Column(db.Integer, nullable=True)
 
     avatar = db.Column(db.String(200), nullable=True)
     bio = db.Column(db.Text, nullable=True)
@@ -29,15 +26,42 @@ class Usuario(UserMixin, db.Model):
 
     email_verificado = db.Column(db.Boolean, default=False)
 
-    # Relacionamento para grupos que o usuário é proprietário
+    # Relacionamento para grupos que o usuário é proprietário (Usuario -> Grupo)
+    # Grupo.proprietario_id é a FK que aponta para Usuario.id
     grupos_proprietario = db.relationship(
-        'Grupo', 
-        foreign_keys='Grupo.proprietario_id', 
-        back_populates='proprietario', 
-        lazy=True
+        'Grupo',
+        back_populates='proprietario',
+        # foreign_keys deve apontar para a coluna FK REMOTA (proprietario_id de Grupo)
+        foreign_keys=lambda: [db.metadata.tables['grupo'].c.proprietario_id],
+        # primaryjoin: explicitamente marca Grupo.proprietario_id como a FK
+        primaryjoin=lambda: Usuario.id == foreign(db.metadata.tables['grupo'].c.proprietario_id),
+        remote_side=lambda: [db.metadata.tables['grupo'].c.proprietario_id]
     )
 
-    # Conexões de quem o usuário segue
+    # Relacionamento com o grupo ao qual o usuário pertence (Usuario -> Grupo)
+    # Usuario.grupo_id é a FK que aponta para Grupo.id
+    grupo = db.relationship(
+        'Grupo',
+        # foreign_keys deve apontar para a coluna FK LOCAL (grupo_id de Usuario)
+        foreign_keys=[grupo_id],
+        # primaryjoin: explicitamente marca Usuario.grupo_id como a FK
+        primaryjoin=lambda: foreign(Usuario.grupo_id) == db.metadata.tables['grupo'].c.id,
+        remote_side=lambda: [db.metadata.tables['grupo'].c.id],
+        back_populates='usuarios'
+    )
+
+    # Relacionamento com o grupo original ao qual o usuário pertencia (Usuario -> Grupo)
+    # Usuario.grupo_original_id é a FK que aponta para Grupo.id
+    grupo_original = db.relationship(
+        'Grupo',
+        # foreign_keys deve apontar para a coluna FK LOCAL (grupo_original_id de Usuario)
+        foreign_keys=[grupo_original_id],
+        # primaryjoin: explicitamente marca Usuario.grupo_original_id como a FK
+        primaryjoin=lambda: foreign(Usuario.grupo_original_id) == db.metadata.tables['grupo'].c.id,
+        remote_side=lambda: [db.metadata.tables['grupo'].c.id],
+        back_populates='grupo_original_usuarios'
+    )
+
     seguindo_conexoes = db.relationship(
         'Conexao',
         foreign_keys='Conexao.seguidor_id',
@@ -45,7 +69,6 @@ class Usuario(UserMixin, db.Model):
         lazy='dynamic'
     )
 
-    # Conexões de quem segue o usuário
     seguidores_conexoes = db.relationship(
         'Conexao',
         foreign_keys='Conexao.seguido_id',
@@ -53,7 +76,6 @@ class Usuario(UserMixin, db.Model):
         lazy='dynamic'
     )
 
-    # Relacionamento para tarefas criadas pelo usuário
     tarefas_criadas = db.relationship(
         'Tarefa',
         foreign_keys='Tarefa.usuario_id',
@@ -61,7 +83,6 @@ class Usuario(UserMixin, db.Model):
         lazy='dynamic'
     )
 
-    # Relacionamento para tarefas concluídas pelo usuário
     tarefas_concluidas_por = db.relationship(
         'Tarefa',
         foreign_keys='Tarefa.concluida_por',
@@ -69,24 +90,20 @@ class Usuario(UserMixin, db.Model):
         lazy='dynamic'
     )
 
-    # Verifica se o usuário já segue outro
     def is_following(self, usuario):
         return self.seguindo_conexoes.filter(
             Conexao.seguido_id == usuario.id
         ).count() > 0
-    
-    # 🔑 Gerar token de verificação de e-mail - REMOVIDO: Usar app.extensions.serializer.generate_token
-    # def gerar_token_confirmacao(self):
-    #     return serializer.dumps(self.email, salt='confirm-email')
 
-    # ✅ Confirmar token e retornar e-mail, ou None se inválido/expirado - REMOVIDO: Usar app.extensions.serializer.confirm_token
-    # @staticmethod
-    # def confirmar_token(token, expiracao=3600):
-    #     try:
-    #         email = serializer.loads(token, salt='confirm-email', max_age=expiracao)
-    #     except Exception:
-    #         return None
-    #     return email
+    def gerar_token_confirmacao(self, expiration=3600):
+        return generate_token(self.id, expiration)
+
+    def confirmar_token(token):
+        return confirm_token_ext(token)
+
+    def check_password(self, password):
+        from werkzeug.security import check_password_hash
+        return check_password_hash(self.senha, password)
 
 
 class PedidoSeguir(db.Model):
@@ -101,5 +118,5 @@ class PedidoSeguir(db.Model):
     visto = db.Column(db.Boolean, default=False)
     data_visto = db.Column(db.DateTime(), nullable=True)
 
-    remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados_seguir') # backref mais específico
-    destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos_seguir') # backref mais específico
+    remetente = db.relationship('Usuario', foreign_keys=[remetente_id], backref='pedidos_enviados_seguir')
+    destinatario = db.relationship('Usuario', foreign_keys=[destinatario_id], backref='pedidos_recebidos_seguir')

@@ -4,7 +4,7 @@
 
 -- 1. Tabela de Grupo
 CREATE TABLE grupo (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
     proprietario_id INT, -- Adicionado para refletir o modelo Python
     FOREIGN KEY (proprietario_id) REFERENCES usuario(id) -- Adicionado para refletir o modelo Python
@@ -12,7 +12,7 @@ CREATE TABLE grupo (
 
 -- 2. Tabela de Usuário
 CREATE TABLE usuario (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
     senha VARCHAR(200) NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE usuario (
 
 -- 4. Tabela de Conexão entre Usuários
 CREATE TABLE conexao (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     seguidor_id INT NOT NULL,
     seguido_id INT NOT NULL,
     visto BOOLEAN DEFAULT FALSE,
@@ -41,7 +41,7 @@ CREATE TABLE conexao (
 
 -- 5. Tabela de Pedido de Seguir
 CREATE TABLE pedido_seguir (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     remetente_id INT NOT NULL,
     destinatario_id INT NOT NULL,
     status VARCHAR(20) DEFAULT 'pendente',
@@ -54,7 +54,7 @@ CREATE TABLE pedido_seguir (
 
 -- 6. Tabela de Convite de Grupo
 CREATE TABLE convite_grupo (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     email_convidado VARCHAR(120) NOT NULL,
     grupo_id INT NOT NULL,
     token VARCHAR(255) UNIQUE NOT NULL, -- Tamanho ajustado para refletir o modelo Python
@@ -65,7 +65,7 @@ CREATE TABLE convite_grupo (
 
 -- 7. Tabela de Solicitação de Grupo
 CREATE TABLE solicitacao_grupo (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     solicitante_id INT NOT NULL,
     grupo_id INT NOT NULL,
     status VARCHAR(20) DEFAULT 'pendente',
@@ -77,7 +77,7 @@ CREATE TABLE solicitacao_grupo (
 
 -- 8. Tabela de Histórico de Ranking
 CREATE TABLE historico_ranking (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     usuario_id INT NOT NULL,
     grupo_id INT NOT NULL,
     tarefas_concluidas INT NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE historico_ranking (
 
 -- 10. Tabela de Tarefa (criada por um usuário para o grupo)
 CREATE TABLE tarefa (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT IDENTITY(1,1) PRIMARY KEY,
     descricao VARCHAR(120) NOT NULL,
     imagem VARCHAR(120),
     grupo_id INT,
