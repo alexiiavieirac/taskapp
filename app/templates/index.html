@@ -1,171 +1,128 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Household Tasks</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% extends "base.html" %}
 
-    <!-- Script para abrir/fechar o menu -->
-    <script>
-        let menuFixado = false;
+{% block title %}Minhas Tarefas{% endblock %}
 
-        function toggleMenu(event) {
-            event.stopPropagation(); // evita fechar imediatamente
-            const menu = document.getElementById("menuDropdown");
-            menuFixado = !menuFixado;
+{% block content %}
+    <h1>Minhas Tarefas</h1>
 
-            if (menuFixado) {
-                menu.style.display = "block";
-            } else {
-                menu.style.display = "none";
-            }
-        }
-
-        window.addEventListener("click", function(event) {
-            if (!event.target.closest('.menu-opcoes')) {
-                if (!event.target.classList.contains('menu-btn')) {
-                    const menu = document.getElementById("menuDropdown");
-                    menuFixado = false;
-                    menu.style.display = "none";
-                }
-            }
-        });
-
-        // Garante que hover ainda funcione
-        const menuOpcoes = document.querySelector('.menu-opcoes');
-        const menu = document.getElementById("menuDropdown");
-
-        let hoverAtivo = false;
-
-        menuOpcoes.addEventListener('mouseenter', () => {
-            if (!menuFixado) {
-                hoverAtivo = true;
-                menu.style.display = "block";
-            }
-        });
-
-        menuOpcoes.addEventListener('mouseleave', () => {
-            if (!menuFixado) {
-                hoverAtivo = false;
-                menu.style.display = "none";
-            }
-        });
-    </script>
-</head>
-<body>
-
-    <!-- Navbar -->
-    <header>
-        <h2>Household Tasks</h2>
-        <div class="navbar-actions">
-            {% if current_user.is_authenticated %}
-                <div class="navbar-user">
-                    {% if current_user.avatar %}
-                        <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno">
-                    {% endif %}
-                    <span class="user-welcome">Bem-vindo(a), {{ current_user.nome }} 👋</span>
-                    <form action="{{ url_for('main.logout') }}" method="GET">
-                        <button class="logout-btn" type="submit">Sair</button>
-                    </form>
-                </div>
+    {# Navegação de data #}
+    <div class="date-navigation">
+        <div class="date-nav-left-group">
+            {# Link para o dia anterior #}
+            <a href="{{ url_for('main.index', date=(current_display_date - timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="date-nav-item date-nav-arrow">⟵</a>
+            
+            {# Título da data atual - CLICÁVEL PARA ABRIR O CALENDÁRIO #}
+            <span class="date-nav-item date-nav-display" id="dateDisplayButton" style="cursor: pointer;">{{ display_date_text }}</span>
+            
+            {# Link para o próximo dia - Só aparece se a data atual não for o dia de hoje #}
+            {% if current_display_date < today_date_utc %}
+                <a href="{{ url_for('main.index', date=(current_display_date + timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="date-nav-item date-nav-arrow">⟶</a>
             {% endif %}
         </div>
-    </header>
 
-    <!-- Menu de Opções -->
-    <div class="menu-opcoes">
-        <!-- Ícone do menu com badge de notificação -->
-        <button class="menu-btn" onclick="toggleMenu(event)">
-            ☰ Menu
-            {% if total_notificacoes > 0 %}
-                <span class="notificacao-badge">{{ total_notificacoes }}</span>
-            {% endif %}
-        </button>
-
-        <div class="menu-dropdown dropdown" id="menuDropdown">
-            <nav>
-                <a href="{{ url_for('main.grupo') }}">👥 Grupo</a>
-            </nav>
-            <a href="{{ url_for('main.conexoes') }}">🔄 Conexões</a>
-            <a href="{{ url_for('main.pedidos_grupo') }}">
-                📩 Pedidos Grupo
-                {% if notificacoes.grupo > 0 %}
-                    <span class="notificacao-label">{{ notificacoes.grupo }}</span>
-                {% endif %}
-            </a>
-            <a href="{{ url_for('main.pedidos_seguir') }}">
-                📩 Pedidos
-                {% if notificacoes.seguidores > 0 %}
-                    <span class="notificacao-label">{{ notificacoes.seguidores }}</span>
-                {% endif %}
-            </a>
-            <a href="{{ url_for('main.ranking') }}">🏆 Ranking</a>
-            <a href="{{ url_for('main.historico') }}">📅 Histórico</a>
-            <a href="{{ url_for('main.tarefas_diarias') }}">📝 Tarefas Diárias</a>
-            <a href="{{ url_for('main.configuracoes') }}" onclick="toggleSettings()">⚙️ Configurações</a>
-        </div>
+        {# Botão "Hoje" para voltar ao dia atual - SÓ APARECE se a data exibida não for hoje #}
+        {% if current_display_date != today_date_utc %}
+            <a href="{{ url_for('main.index', date=today_date_utc.strftime('%Y-%m-%d')) }}" class="date-nav-item date-nav-today">Hoje</a>
+        {% endif %}
     </div>
-
-    <div class="container">
-        <h1>Minhas Tarefas</h1>
     
+    {# Input de data escondido para o calendário #}
+    <input type="date" id="datePicker" class="visually-hidden">
+
+    {# Formulário de adicionar tarefa - Visível APENAS se não for uma data passada #}
+    {% if not is_past_date %}
         <form method="POST" enctype="multipart/form-data">
             <input type="text" name="descricao" placeholder="Nova Tarefa" required>
             <input type="file" name="imagem" accept="image/*">
             <button type="submit">Adicionar</button>
         </form>
+    {% else %}
+        <p style="text-align: center; color: #888; margin-bottom: 20px;">Não é possível adicionar tarefas para dias passados.</p>
+    {% endif %}
     
-        {% for tarefa in tarefas %}
-            <div class="tarefa-item" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 16px; padding: 10px; background-color: #f9f9f9; border-radius: 8px;">
-
-                <!-- Conteúdo da tarefa (descrição + imagem) -->
-                <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
-                    <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
-                        {% if tarefa.concluida %}
-                            <s>{{ tarefa.descricao }}</s>
-                        {% else %}
-                            {{ tarefa.descricao }}
-                        {% endif %}
-                    </div>
-
-                    {% if tarefa.imagem %}
-                    <div class="tarefa-imagem-container">
-                        <img src="{{ url_for('static', filename='uploads/' ~ tarefa.imagem) }}" alt="Imagem da tarefa" class="tarefa-imagem">
-                        {% if tarefa.usuario_id == current_user.id %}
-                        <form method="POST" action="{{ url_for('main.remover_imagem', id=tarefa.id) }}">
-                            <button type="submit" class="botao-remover-imagem">✖</button>
-                        </form>
-                        {% endif %}
-                    </div>
+    {% for tarefa in tarefas %}
+        <div class="tarefa-item">
+            <!-- Conteúdo da tarefa (descrição + imagem) -->
+            <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+                <div class="descricao {% if tarefa.concluida %}concluida{% endif %}">
+                    {% if tarefa.concluida %}
+                        <s>{{ tarefa.descricao }}</s>
+                    {% else %}
+                        {{ tarefa.descricao }}
                     {% endif %}
                 </div>
 
-                <!-- Botão de adicionar imagem -->
-                {% if tarefa.usuario_id == current_user.id %}
-                <form action="{{ url_for('main.enviar_imagem', id=tarefa.id) }}" method="POST" enctype="multipart/form-data" class="form-imagem">
+                {% if tarefa.imagem %}
+                <div class="tarefa-imagem-container">
+                    <img src="{{ url_for('static', filename='uploads/' ~ tarefa.imagem) }}" alt="Imagem da tarefa" class="tarefa-imagem">
+                    {% if current_user.grupo_id == tarefa.grupo_id and not is_past_date %}
+                    <form method="POST" action="{{ url_for('main.remover_imagem', id=tarefa.id, date=current_display_date.strftime('%Y-%m-%d')) }}">
+                        <button type="submit" class="botao-remover-imagem">✖</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Ações - Desabilitadas se for uma data passada -->
+            <div class="acoes {% if is_past_date %}disabled{% endif %}">
+                {% if current_user.grupo_id == tarefa.grupo_id and not is_past_date %}
+                <form action="{{ url_for('main.enviar_imagem', id=tarefa.id, date=current_display_date.strftime('%Y-%m-%d')) }}" method="POST" enctype="multipart/form-data" class="form-imagem">
                     <label for="imagem-{{ tarefa.id }}" class="botao-imagem">📷</label>
                     <input type="file" name="imagem" id="imagem-{{ tarefa.id }}" accept="image/*" style="display: none;" onchange="this.form.submit()">
                 </form>
                 {% endif %}
 
-                <!-- Ações -->
-                <div class="acoes" style="display: flex; align-items: center; gap: 8px;">
-                    <a href="/concluir/{{ tarefa.id }}">
-                        {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
-                    </a>
+                {% if not is_past_date %}
+                <a href="{{ url_for('main.concluir', id=tarefa.id, date=current_display_date.strftime('%Y-%m-%d')) }}">
+                    {% if tarefa.concluida %}✔️{% else %}✅{% endif %}
+                </a>
+                {% else %}
+                    <span class="past-date-completed-icon">{% if tarefa.concluida %}✔️{% else %}⚪{% endif %}</span>
+                {% endif %}
 
-                    {% if tarefa.usuario_id == current_user.id %}
-                    <a href="{{ url_for('main.editar', id=tarefa.id) }}">✏️</a>
-                    <form action="{{ url_for('main.excluir_tarefa', id=tarefa.id) }}" method="POST" style="display: inline;">
-                        <button type="submit">🗑️</button>
-                    </form>
-                    {% endif %}
-                </div>
+                {% if tarefa.usuario_id == current_user.id and not is_past_date %}
+                <a href="{{ url_for('main.editar', id=tarefa.id, date=current_display_date.strftime('%Y-%m-%d')) }}">✏️</a>
+                <form action="{{ url_for('main.excluir_tarefa', id=tarefa.id, date=current_display_date.strftime('%Y-%m-%d')) }}" method="POST" style="display: inline;">
+                    <button type="submit">🗑️</button>
+                </form>
+                {% endif %}
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
 
-    </div>
-    
-</body>
-</html>
+{% endblock %}
+
+{% block scripts %}
+    {# --- Lógica JavaScript da Navegação de Data (específica do index.html) --- #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateDisplayButton = document.getElementById('dateDisplayButton');
+            const datePicker = document.getElementById('datePicker');
+
+            if (dateDisplayButton && datePicker) { // Garante que ambos os elementos existam
+                dateDisplayButton.addEventListener('click', function() {
+                    // Tenta showPicker() primeiro (mais moderno e limpo)
+                    if (typeof datePicker.showPicker === 'function') {
+                        datePicker.showPicker();
+                    } else {
+                        // Fallback para navegadores que não suportam showPicker()
+                        datePicker.click(); 
+                    }
+                });
+
+                // Quando uma data é selecionada no calendário
+                datePicker.addEventListener('change', function() {
+                    const selectedDate = datePicker.value; // Formato YYYY-MM-DD
+                    if (selectedDate) {
+                        window.location.href = "{{ url_for('main.index') }}?date=" + selectedDate;
+                    }
+                });
+
+                // Preenche o campo datePicker com a data atualmente exibida para melhor UX
+                const currentDisplayDateStr = "{{ current_display_date.strftime('%Y-%m-%d') }}";
+                datePicker.value = currentDisplayDateStr;
+            }
+        });
+    </script>
+{% endblock %}

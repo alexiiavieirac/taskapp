@@ -343,6 +343,7 @@ h1 {
   transition: transform 0.3s ease;
   margin-top: 30px;
   margin-bottom: -10px;
+  margin-right: 20px;
 }
 
 .tarefa-imagem:hover {
@@ -352,7 +353,7 @@ h1 {
 .botao-remover-imagem {
   position: absolute;
   top: 20px;
-  right: -10px;
+  right: 15px;
   background-color: red;
   color: white;
   border: none;
@@ -398,4 +399,278 @@ h1 {
 
 .notificacao-label.vazio {
   display: none !important;
+}
+
+/* --- ESTILOS DE NAVEGAÇÃO DE DATA (ATUALIZADO) --- */
+
+/* Contêiner da navegação de data */
+.date-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* <-- Alterado para empurrar os grupos para as extremidades */
+    margin-bottom: 20px;
+    padding: 10px 0;
+    flex-wrap: wrap; 
+}
+
+/* Novo grupo para os itens da esquerda */
+.date-nav-left-group {
+    display: flex; /* Para manter as setas e a data juntas */
+    align-items: center;
+    gap: 10px; /* Espaçamento entre os itens dentro deste grupo */
+    /* Garante que este grupo não encolha e quebre as linhas se houver espaço */
+    flex-shrink: 0; 
+}
+
+
+/* Estilo base para todos os itens da navegação de data (setas, display da data, botão "Hoje") */
+.date-nav-item {
+    font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif; 
+    padding: 8px 12px;
+    background-color: rgb(44, 62, 80); 
+    color: white; 
+    border-radius: 6px; 
+    text-decoration: none; 
+    transition: background-color 0.2s; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    white-space: nowrap; 
+}
+
+/* Efeito hover para os itens interativos da navegação */
+.date-nav-item:hover {
+    background-color: #34495e; 
+}
+
+/* Estilo específico para as setas (emojis) */
+.date-nav-arrow {
+    font-size: 1.1em; 
+}
+
+/* Estilo específico para a exibição da data ("Hoje", "Ontem", "DD/MM/AAAA") */
+.date-nav-display {
+    font-size: 1.1em; 
+    font-weight: bold; 
+    /* Não precisa mais de flex-grow: 1 aqui, pois ele está dentro do grupo esquerdo */
+    text-align: center; 
+}
+
+/* Estilo específico para o botão "Hoje" */
+.date-nav-today {
+    font-size: 1.1em; 
+    font-weight: bold;
+    /* Pode adicionar um margin-left se precisar de mais espaçamento para a direita,
+       mas `justify-content: space-between` já fará o trabalho principal de afastá-lo */
+}
+
+/* --- CHAT WIDGET --- */
+.chat-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000; /* Garante que fique acima de outros conteúdos */
+}
+
+.chat-bubble {
+    background-color: #007bff; /* Cor azul primária */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 1.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease-in-out;
+}
+
+.chat-bubble:hover {
+    transform: scale(1.05);
+}
+
+.chat-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px; /* Ajuste a largura conforme necessário */
+    height: 500px; /* Ajuste a altura conforme necessário */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* Escondido por padrão, desliza da direita */
+    transform: translateX(110%); /* Fora da tela para a direita */
+    opacity: 0;
+    pointer-events: none; /* Desabilita interações quando escondido */
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.chat-panel.open {
+    transform: translateX(0); /* Desliza para dentro da tela */
+    opacity: 1;
+    pointer-events: auto; /* Habilita interações quando aberto */
+}
+
+/* Cabeçalho do Chat */
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.chat-close-btn { /* Estilos para o botão 'i' também */
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 5px; /* Adicionado um pouco de padding */
+}
+
+.group-info-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 5px; /* Adicionado um pouco de padding */
+    margin-right: -90px;
+}
+
+/* Painel de Informações do Grupo */
+.group-info-panel {
+    background-color: #f0f0f0;
+    padding: 0 15px; /* Padding vertical 0 para controlar com max-height */
+    border-bottom: 1px solid #eee;
+    /* Escondido por padrão, e mostra/esconde com JS */
+    max-height: 0; /* Inicia com altura 0 */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+}
+
+.group-info-panel.open-info {
+    max-height: 200px; /* Altura máxima quando aberto. Ajuste conforme necessário. */
+    padding: 10px 15px; /* Padding real quando aberto */
+}
+
+.group-info-panel h4, .group-info-panel h5 {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    color: #555;
+}
+
+.group-info-panel ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 100px; /* Limita a altura da lista de membros */
+    overflow-y: auto;
+}
+
+.group-info-panel li {
+    font-size: 0.9em;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+
+/* Área de Mensagens do Chat */
+.chat-messages {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    /* Adicionado para que as mensagens se alinhem corretamente */
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-message-item {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    max-width: 80%; /* Limita a largura da mensagem */
+}
+
+.chat-message-item.self {
+    align-self: flex-end;
+    background-color: #dcf8c6; /* Verde claro para suas mensagens */
+    border-radius: 8px 8px 0 8px;
+    padding: 8px 12px;
+}
+
+.chat-message-item.other {
+    align-self: flex-start;
+    background-color: #e0e0e0; /* Cinza claro para mensagens de outros */
+    border-radius: 8px 8px 8px 0;
+    padding: 8px 12px;
+}
+
+.chat-message-author {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 3px;
+}
+.chat-message-item.self .chat-message-author {
+    text-align: right;
+}
+
+.chat-message-item p {
+    margin: 0;
+    word-wrap: break-word; /* Garante que palavras longas quebrem */
+}
+
+.chat-message-time {
+    font-size: 0.7em;
+    color: #999;
+    margin-top: 3px;
+    text-align: right;
+}
+
+/* Área de Input do Chat */
+.chat-input-area {
+    display: flex;
+    padding: 10px 15px;
+    border-top: 1px solid #eee;
+    background-color: #f0f0f0;
+}
+
+.chat-input-area input[type="text"] {
+    flex-grow: 1;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+.chat-input-area button {
+    background-color: #28a745; /* Botão enviar verde */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.chat-input-area button:hover {
+    background-color: #218838;
 }

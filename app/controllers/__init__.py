@@ -9,5 +9,5 @@ from app.controllers import (
     ranking_controller,
     conexao_controller,
     historico_controller,
-    configuracao_controller
+    configuracao_controller,
 )

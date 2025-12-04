@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Household Tasks{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Inclua a biblioteca cliente do Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+
+    <!-- Cabeçalho para scripts adicionais da página específica (se necessário) -->
+    {% block head_scripts %}{% endblock %}
+
+    <style>
+        /* Estilos adicionados para esconder o input type="date" de forma acessível */
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px; width: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px); /* IE6, IE7 */
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap; /* keep all text on one line */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar - Comum a todas as páginas -->
+    <header>
+        <h2>Household Tasks</h2>
+        <div class="navbar-actions">
+            {% if current_user.is_authenticated %}
+                <div class="navbar-user">
+                    {% if current_user.avatar %}
+                        <img src="{{ url_for('static', filename='uploads/' + current_user.avatar) }}" alt="Avatar" class="avatar-pequeno">
+                    {% endif %}
+                    <span class="user-welcome">Bem-vindo(a), {{ current_user.nome }} 👋🏻</span>
+                    <form action="{{ url_for('main.logout') }}" method="GET">
+                        <button class="logout-btn" type="submit">Sair</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Menu de Opções - Comum a todas as páginas -->
+    <div class="menu-opcoes">
+        <!-- Ícone do menu com badge de notificação -->
+        <button class="menu-btn" onclick="toggleMenu(event)">
+            ☰ Menu
+            {# total_notificacoes é injetado pelo context_processor #}
+            {% if total_notificacoes is defined and total_notificacoes > 0 %}
+                <span class="notificacao-badge">{{ total_notificacoes }}</span>
+            {% endif %}
+        </button>
+
+        <div class="menu-dropdown dropdown" id="menuDropdown">
+            <nav>
+                <a href="{{ url_for('main.grupo') }}">👥 Grupo</a>
+            </nav>
+            <a href="{{ url_for('main.conexoes') }}">🔄 Conexões</a>
+            <a href="{{ url_for('main.pedidos_grupo') }}">
+                📨 Pedidos Grupo
+                {# notificacoes.grupo é injetado pelo context_processor #}
+                {% if notificacoes is defined and notificacoes.grupo > 0 %}
+                    <span class="notificacao-label">{{ notificacoes.grupo }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('main.pedidos_seguir') }}">
+                🙋 Pedidos
+                {# notificacoes.seguidores é injetado pelo context_processor #}
+                {% if notificacoes is defined and notificacoes.seguidores > 0 %}
+                    <span class="notificacao-label">{{ notificacoes.seguidores }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('main.ranking') }}">🏆 Ranking</a>
+            <a href="{{ url_for('main.historico') }}">🗓️ Histórico</a>
+            <a href="{{ url_for('main.tarefas_diarias') }}">📝 Tarefas Diárias</a>
+            <a href="{{ url_for('main.configuracoes') }}">⚙️ Configurações</a>
+        </div>
+    </div>
+
+    <!-- Conteúdo específico de cada página será inserido aqui -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Chat Widget - Comum a todas as páginas -->
+    {% if current_user.is_authenticated and current_user.grupo_id %}
+    <div class="chat-widget">
+        <button class="chat-bubble" id="chatBubble">💬</button>
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <h3>Chat do Grupo</h3>
+                <button class="group-info-btn" id="groupInfoBtn">ℹ️</button> {# Botão de info #}
+                <button class="chat-close-btn" id="chatCloseBtn">✖</button>
+            </div>
+            
+            {# Painel de informações do grupo - Escondido por padrão #}
+            <div class="group-info-panel" id="groupInfoPanel">
+                {# current_user_group_name é injetado pelo context_processor #}
+                <h4>Grupo: {{ current_user_group_name }}</h4>
+                <h5>Membros do Grupo:</h5>
+                <ul>
+                    <!-- Exibe o usuário atual -->
+                    <li>{{ current_user.nome }} (Você)</li>
+                    <!-- Itera sobre os membros do grupo, excluindo o usuário atual -->
+                    {# grupo_members é injetado pelo context_processor #}
+                    {% if grupo_members %}
+                        {% for member in grupo_members %}
+                            {% if member.id != current_user.id %} {# Garante que o usuário atual não seja duplicado #}
+                                <li>{{ member.nome }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <li>Nenhum outro membro encontrado.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="chat-messages">
+                <!-- As mensagens do chat serão adicionadas aqui pelo JavaScript -->
+                <div class="chat-message-item other">
+                    <span class="chat-message-author">Sistema</span>
+                    <p>Conectando ao chat do grupo...</p>
+                    {# datetime é injetado pelo context_processor #}
+                    <span class="chat-message-time">{{ datetime.utcnow().strftime('%H:%M') }}</span>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <input type="text" placeholder="Digite sua mensagem..." id="chatMessageInput">
+                <button id="chatSendBtn">Enviar</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Scripts JavaScript comuns a todas as páginas e do chat -->
+    <script>
+        // Variável global usada por manipuladores de eventos inline e event listeners
+        let menuFixado = false;
+
+        // Função de toggle do menu (chamada por onclick="toggleMenu(event)")
+        function toggleMenu(event) {
+            event.stopPropagation(); // Evita que o evento de clique se propague para o window
+            const menu = document.getElementById("menuDropdown");
+            if (menu) { // Garante que o menu exista
+                menuFixado = !menuFixado;
+                menu.style.display = menuFixado ? "block" : "none";
+            }
+        }
+
+        // Tudo que manipula o DOM diretamente deve estar dentro de DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Lógica do Menu Dropdown (hover e fechar ao clicar fora) ---
+            const menuOpcoes = document.querySelector('.menu-opcoes');
+            const menuDropdown = document.getElementById("menuDropdown");
+
+            if (menuOpcoes && menuDropdown) {
+                // Eventos de hover para o menu
+                menuOpcoes.addEventListener('mouseenter', () => {
+                    if (!menuFixado) { // Se o menu não estiver fixado, abre ao passar o mouse
+                        menuDropdown.style.display = "block";
+                    }
+                });
+
+                menuOpcoes.addEventListener('mouseleave', () => {
+                    if (!menuFixado) { // Se o menu não estiver fixado, fecha ao tirar o mouse
+                        menuDropdown.style.display = "none";
+                    }
+                });
+
+                // Evento para fechar o menu ao clicar fora dele
+                window.addEventListener("click", function(event) {
+                    // Verifica se o clique não foi dentro da área do menuOpcoes E não foi no botão que abre o menu
+                    if (!event.target.closest('.menu-opcoes') && !event.target.classList.contains('menu-btn')) {
+                        if (menuDropdown) { // Garante que o menuDropdown exista
+                            menuFixado = false; // Desfixa o menu
+                            menuDropdown.style.display = "none";
+                        }
+                    }
+                });
+            }
+
+            // --- Lógica do Chat Widget (Abertura/Fechamento do Painel) ---
+            const chatBubble = document.getElementById('chatBubble');
+            const chatPanel = document.getElementById('chatPanel');
+            const chatCloseBtn = document.getElementById('chatCloseBtn');
+            const groupInfoBtn = document.getElementById('groupInfoBtn'); // Novo botão 'i'
+            const groupInfoPanel = document.getElementById('groupInfoPanel'); // Novo painel de info
+
+            if (chatBubble && chatPanel && chatCloseBtn && groupInfoBtn && groupInfoPanel) {
+                chatBubble.addEventListener('click', function() {
+                    chatPanel.classList.toggle('open');
+                    chatBubble.style.display = chatPanel.classList.contains('open') ? 'none' : 'flex';
+                });
+
+                chatCloseBtn.addEventListener('click', function() {
+                    chatPanel.classList.remove('open');
+                    groupInfoPanel.classList.remove('open-info'); // Fecha o painel de info se estiver aberto
+                    chatBubble.style.display = 'flex';
+                });
+
+                // Nova lógica para o botão "i"
+                groupInfoBtn.addEventListener('click', function() {
+                    groupInfoPanel.classList.toggle('open-info');
+                });
+                
+                // Esconde o painel por padrão, mas mantém a bolha visível
+                chatPanel.classList.remove('open');
+                groupInfoPanel.classList.remove('open-info');
+                chatBubble.style.display = 'flex';
+            }
+
+            // --- Lógica do Socket.IO para o Chat ---
+            // Apenas se o usuário estiver autenticado e tiver um grupo_id
+            {% if current_user.is_authenticated and current_user.grupo_id %}
+                const socket = io(); // Conecta ao servidor Socket.IO
+
+                // Evento de conexão
+                socket.on('connect', function() {
+                    console.log('Conectado ao servidor Socket.IO!');
+                    // Envia um evento para o servidor para entrar na sala do grupo
+                    socket.emit('join', { group_id: {{ current_user.grupo_id }} });
+                });
+
+                // Evento para receber mensagens
+                socket.on('message', function(data) {
+                    addMessageToChat(data.username, data.message, data.user_id, data.timestamp);
+                });
+
+                // Lógica para enviar mensagem
+                const chatMessageInput = document.getElementById('chatMessageInput');
+                const chatSendBtn = document.getElementById('chatSendBtn');
+
+                if (chatMessageInput && chatSendBtn) {
+                    chatSendBtn.addEventListener('click', function() {
+                        const message = chatMessageInput.value.trim();
+                        if (message) {
+                            // Envia a mensagem para o servidor
+                            socket.emit('send_message', { message: message, group_id: {{ current_user.grupo_id }} });
+                            chatMessageInput.value = ''; // Limpa o input
+                        }
+                    });
+
+                    // Permite enviar mensagem ao pressionar Enter
+                    chatMessageInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            chatSendBtn.click();
+                        }
+                    });
+                }
+
+                // Função para adicionar mensagem ao chat
+                // Mude a assinatura da função de (username, message, is_self, timestamp)
+                // para (username, message, sender_user_id, timestamp)
+                function addMessageToChat(username, message, sender_user_id, timestamp) { // ALTERADO AQUI
+                    const chatMessagesContainer = document.querySelector('.chat-messages');
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('chat-message-item');
+
+                    // --- NOVA LÓGICA: Determinar se a mensagem é do próprio usuário ---
+                    const currentUserId = {{ current_user.id }}; // ID do usuário logado (Lekinha, no seu caso)
+                    const is_self = sender_user_id === currentUserId; // Compara o ID do remetente com o ID do usuário atual
+                    // ------------------------------------------------------------------
+
+                    if (is_self) { // Agora 'is_self' é determinado no cliente
+                        messageElement.classList.add('self');
+                    } else {
+                        messageElement.classList.add('other');
+                    }
+
+                    const authorSpan = document.createElement('span');
+                    authorSpan.classList.add('chat-message-author');
+                    authorSpan.textContent = username;
+
+                    const messageParagraph = document.createElement('p');
+                    messageParagraph.textContent = message;
+
+                    const timeSpan = document.createElement('span');
+                    timeSpan.classList.add('chat-message-time');
+                    const date = new Date(timestamp);
+                    timeSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    messageElement.appendChild(authorSpan);
+                    messageElement.appendChild(messageParagraph);
+                    messageElement.appendChild(timeSpan);
+                    chatMessagesContainer.appendChild(messageElement);
+                    
+                    // Rolagem automática para a última mensagem
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                }
+                
+                // Carregar histórico de mensagens (pode ser feito via Socket.IO ou rota Flask normal)
+                // Carregar histórico de mensagens (pode ser feito via Socket.IO ou rota Flask normal)
+                socket.on('history', function(messages) {
+                    const chatMessagesContainer = document.querySelector('.chat-messages');
+                    chatMessagesContainer.innerHTML = ''; // Limpa as mensagens de exemplo/placeholder
+                    // Você já tinha uma lógica de 'is_self' aqui, vamos ajustá-la para usar o ID
+                    const currentUserId = {{ current_user.id }}; // Adicione esta linha também para o histórico
+
+                    messages.forEach(msg => {
+                        // Verifique se a mensagem foi enviada pelo usuário atual
+                        const is_self_from_history = msg.user_id === currentUserId; // Usa o ID do histórico
+                        // Envie 'msg.user_id' (o ID do remetente) para a função
+                        addMessageToChat(msg.username, msg.message, msg.user_id, msg.timestamp); // ALTERADO AQUI
+                    });
+                });
+
+            {% endif %}
+        });
+    </script>
+    
+    <!-- Scripts específicos da página que estende base.html -->
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

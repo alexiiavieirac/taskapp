@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
-# from flask import abort, app, current_app, render_template, request, flash, redirect, url_for # Removida importação 'app' duplicada
-from flask import abort, current_app, render_template, request, flash, redirect, url_for # Correção da importação
+# app/controllers/tarefa_controller.py
+from datetime import datetime, date, timedelta, timezone
+from flask import abort, current_app, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from werkzeug.utils import secure_filename
@@ -10,33 +10,56 @@ from app.controllers import main_bp
 import os
 from app.utils.date_utils import obter_limites_semana
 from app.utils.task_service import adicionar_tarefa
-from app.constants import TAREFAS_PRE_ESTABELECIDAS # Importada lista de constantes
+from app.constants import TAREFAS_PRE_ESTABELECIDAS
 
 
 @main_bp.route('/', methods=["GET", "POST"])
 @login_required
 def index():
     grupo_id = current_user.grupo_id
-    semana = obter_limites_semana()
+    
+    date_str = request.args.get('date')
+    if date_str:
+        current_display_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    else:
+        current_display_date = datetime.now(timezone.utc).date()
+        
+    today_date_utc = datetime.now(timezone.utc).date()
+    
+    # Nova variável: True se a data exibida for anterior a hoje
+    is_past_date = current_display_date < today_date_utc
 
-    # Tarefas pré-estabelecidas (agora importadas de app.constants)
-    # tarefas_pre_estabelecidas = [ ... ] # Removida definição duplicada
+    if current_display_date == today_date_utc:
+        display_date_text = "Hoje"
+    elif current_display_date == today_date_utc - timedelta(days=1):
+        display_date_text = "Ontem"
+    else:
+        display_date_text = current_display_date.strftime('%d/%m/%Y')
+
 
     if request.method == "POST":
+        # Se for uma data passada, não permite adicionar nova tarefa
+        if is_past_date:
+            flash("Não é possível adicionar tarefas para dias passados.", "warning")
+            return redirect(url_for("main.index", date=current_display_date.strftime('%Y-%m-%d')))
+
         descricao = request.form["descricao"].strip()
         imagem = request.files.get("imagem")
         nome_imagem = None
 
-        # Verifica se é uma tarefa pré-estabelecida
         if descricao in TAREFAS_PRE_ESTABELECIDAS:
-            flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.", "warning") # Adicionada categoria
-            return redirect(url_for("main.index"))
+            flash("Essa tarefa já faz parte das tarefas diárias e não pode ser adicionada aqui.", "warning")
+            return redirect(url_for("main.index", date=current_display_date.strftime('%Y-%m-%d')))
 
-        # Verifica se a tarefa já existe no banco de dados para o mesmo grupo
+        # A sua lógica de verificação de tarefa existente aqui parece estar um pouco aberta.
+        # Se 'ativa=True' é para tarefas existentes, mas o filtro 'data' não está incluído,
+        # significa que uma tarefa adicionada hoje com a mesma descrição impedirá uma amanhã.
+        # Avalie se você quer que a verificação de tarefa existente seja por dia ou geral.
+        # Por enquanto, vou manter como está no seu código original.
         tarefa_existente = Tarefa.query.filter_by(descricao=descricao, grupo_id=grupo_id, ativa=True).first()
         if tarefa_existente:
-            flash("Essa tarefa já foi adicionada anteriormente.", "info") # Adicionada categoria
-            return redirect(url_for("main.index"))
+            flash("Essa tarefa já foi adicionada anteriormente.", "info")
+            return redirect(url_for("main.index", date=current_display_date.strftime('%Y-%m-%d')))
 
         if imagem and imagem.filename != "":
             nome_imagem = secure_filename(imagem.filename)
@@ -48,17 +71,38 @@ def index():
             grupo_id=grupo_id,
             usuario_id=current_user.id,  
             ativa=True,
-            concluida=False
+            concluida=False,
+            # Se você quer que a tarefa seja associada à current_display_date,
+            # e não apenas à data de criação, você precisaria de um campo 'data_tarefa' no modelo Tarefa
+            # Por enquanto, usa data de criação, como no seu código original
+            data_criacao=datetime.now(timezone.utc) 
         )
 
         db.session.add(nova_tarefa)
         db.session.commit()
-        flash("Tarefa adicionada com sucesso!", "success") # Adicionada mensagem de sucesso
+        flash("Tarefa adicionada com sucesso!", "success")
 
-        return redirect("/")
+        return redirect(url_for("main.index", date=current_display_date.strftime('%Y-%m-%d')))
 
-    tarefas = Tarefa.query.filter_by(grupo_id=grupo_id, ativa=True).order_by(Tarefa.data_criacao).all()
+
+    start_of_day = datetime.combine(current_display_date, datetime.min.time(), tzinfo=timezone.utc)
+    end_of_day = datetime.combine(current_display_date, datetime.max.time(), tzinfo=timezone.utc)
+
+    # Lógica para buscar as tarefas
+    tarefas = Tarefa.query.filter(
+        Tarefa.grupo_id == grupo_id,
+        Tarefa.ativa == True,
+        # Importante: A sua query filtra as tarefas pela data de CRIAÇÃO.
+        # Se você quiser que a 'current_display_date' mostre tarefas agendadas para aquele dia,
+        # você precisaria de um campo de data específica no modelo Tarefa para isso.
+        # Ex: Tarefa.data_agendada == current_display_date
+        # Mantenho o filtro de data de criação como está no seu código original.
+        Tarefa.data_criacao >= start_of_day,
+        Tarefa.data_criacao <= end_of_day
+    ).order_by(Tarefa.data_criacao).all()
+
     grupo = Grupo.query.get_or_404(grupo_id)
+    # Esta variável 'membros' já é a lista de usuários do grupo, perfeita para o chat
     membros = Usuario.query.filter_by(grupo_id=grupo_id).all()
 
     ranking = db.session.query(
@@ -72,26 +116,13 @@ def index():
     .order_by(func.count(Tarefa.id).desc()) \
     .all()
 
-    # ======================================
-    # Notificações (Pedidos pendentes)
-    # ======================================
     pedidos_seguir = PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").all()
     pedidos_grupo = SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").all()
     conexoes = Conexao.query.filter_by(seguido_id=current_user.id).all()  
 
-    # Contar quantas notificações estão pendentes
-    pedidos_seguir_count = sum(1 for pedido in pedidos_seguir if not pedido.visto)  # Só conta se não foi visto
+    pedidos_seguir_count = sum(1 for pedido in pedidos_seguir if not pedido.visto)
     pedidos_grupo_count = sum(1 for pedido in pedidos_grupo if not pedido.visto)
     conexoes_count = sum(1 for conexao in conexoes if not conexao.visto)
-
-    # ======================================
-    # Removido: Lógica de marcar notificações como vistas na rota index
-    # Esta lógica deve ocorrer apenas quando o usuário interage diretamente com as notificações.
-    # PedidoSeguir.query.filter_by(destinatario_id=current_user.id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-    # SolicitacaoGrupo.query.filter_by(grupo_id=current_user.grupo_id, status="pendente").update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-    # Conexao.query.filter_by(seguido_id=current_user.id).update({"visto": True, "data_visto": datetime.now(timezone.utc)})
-    # db.session.commit()
-    # ======================================
 
     total_notificacoes = pedidos_seguir_count + pedidos_grupo_count + conexoes_count
 
@@ -99,81 +130,111 @@ def index():
         'index.html',
         tarefas=tarefas,
         grupo=grupo,
-        membros=membros,
+        membros=membros, # Já estava sendo passado para 'membros'
         grupo_id=grupo_id,
         notificacoes = {
             "grupo": pedidos_grupo_count,
             "seguidores": pedidos_seguir_count,
             "conexoes": conexoes_count
         },
-        total_notificacoes=total_notificacoes
+        total_notificacoes=total_notificacoes,
+        current_display_date=current_display_date,
+        display_date_text=display_date_text,
+        is_past_date=is_past_date, # Passa a nova variável para o template
+        today_date_utc=today_date_utc,
+        timedelta=timedelta,
+        grupo_members=membros, # AQUI: Passa a mesma lista 'membros' com o nome 'grupo_members' para o template
+        datetime=datetime # Passa o módulo datetime para o template
     )
+
+
+# Função auxiliar para redirecionar de volta à data correta
+def redirect_to_index_with_date():
+    redirect_date_str = request.args.get('date')
+    if redirect_date_str:
+        return redirect(url_for('main.index', date=redirect_date_str))
+    return redirect(url_for('main.index')) # Se não houver data na URL, redireciona para hoje
 
 
 @main_bp.route("/concluir/<int:id>")
 @login_required
 def concluir(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
 
-    # Verifica se o usuário pertence ao mesmo grupo
     if tarefa.grupo_id != current_user.grupo_id:
-        flash("Você não tem permissão para concluir/desmarcar esta tarefa.", "danger") # Adicionada mensagem
+        flash("Você não tem permissão para concluir/desmarcar esta tarefa.", "danger")
         abort(403)
+    
+    # Impede modificação de tarefas de dias passados
+    # Sua lógica de data_criacao.date() < today_date pode precisar de ajuste
+    # se as tarefas forem "agendadas" para dias diferentes da criação.
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date()
 
-    # Se já está concluída
     if tarefa.concluida:
-        # Só quem concluiu pode desmarcar
         if tarefa.concluida_por == current_user.id:
             tarefa.concluida = False
             tarefa.concluida_por = None
-            tarefa.data_conclusao = None  # limpa a data
-            flash("Tarefa desmarcada com sucesso!", "info") # Adicionada categoria
+            tarefa.data_conclusao = None
+            flash("Tarefa desmarcada com sucesso!", "info")
         else:
-            flash("Apenas quem concluiu a tarefa pode desmarcá-la.", "warning") # Adicionada categoria
-            return redirect("/")
+            flash("Apenas quem concluiu a tarefa pode desmarcá-la.", "warning")
+            return redirect_to_index_with_date()
     else:
-        # Marca como concluída por quem clicou
         tarefa.concluida = True
         tarefa.concluida_por = current_user.id
-        tarefa.data_conclusao = datetime.now(timezone.utc)  # registra o momento
-        flash("Tarefa concluída com sucesso!", "success") # Adicionada categoria
+        tarefa.data_conclusao = datetime.now(timezone.utc)
+        flash("Tarefa concluída com sucesso!", "success")
 
     db.session.commit()
-    return redirect("/")
+    return redirect_to_index_with_date()
 
 
 @main_bp.route("/deletar/<int:id>")
+@login_required
 def deletar(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
 
-    # Verifica se o usuário pertence ao mesmo grupo
-    if tarefa.grupo_id != current_user.grupo_id:
-        flash("Você não pode excluir esta tarefa.", "danger")
-        return redirect("/")
+    if tarefa.usuario_id != current_user.id:
+        flash("Você não tem permissão para excluir esta tarefa.", "danger")
+        if tarefa.grupo_id != current_user.grupo_id: 
+            abort(403)
+        return redirect_to_index_with_date()
 
-    # Marca como inativa, não deleta
+    # Impede modificação de tarefas de dias passados
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date()
+
     tarefa.ativa = False
     db.session.commit()
-    flash("Tarefa excluída com sucesso.", "success") # Removido comentário e adicionada categoria
-    return redirect("/")
+    flash("Tarefa excluída com sucesso.", "success")
+    return redirect_to_index_with_date()
 
 
 @main_bp.route('/editar/<int:id>', methods=["GET", "POST"])
 @login_required
 def editar(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
 
-    # Verifica se o usuário atual é o criador da tarefa
     if tarefa.usuario_id != current_user.id:
-        flash("Você não tem permissão para editar esta tarefa.", "danger") # Adicionada mensagem
-        abort(403)  # Proibido
+        flash("Você não tem permissão para editar esta tarefa.", "danger")
+        abort(403)
 
+    # Impede modificação de tarefas de dias passados
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date() # Redireciona para o index com a data original
+        
     if request.method == "POST":
         descricao = request.form["descricao"].strip()
         nova_imagem = request.files.get("imagem")
 
         if nova_imagem and nova_imagem.filename != "":
-            # Se já existe uma imagem antiga, remove ela
             if tarefa.imagem:
                 caminho = os.path.join(current_app.config['UPLOAD_FOLDER'], tarefa.imagem)
                 if os.path.exists(caminho):
@@ -182,35 +243,28 @@ def editar(id):
             nome_imagem = secure_filename(nova_imagem.filename)
             nova_imagem.save(os.path.join(current_app.config['UPLOAD_FOLDER'], nome_imagem))
             tarefa.imagem = nome_imagem
+        
+        if descricao:
+            tarefa.descricao = descricao
 
-        tarefa.descricao = descricao # Move para cá para garantir que a descrição seja atualizada
         db.session.commit()
-        flash("Tarefa editada com sucesso!", "success") # Adicionada categoria
-        return redirect("/")
+        flash("Tarefa editada com sucesso!", "success")
+        return redirect_to_index_with_date() # Redireciona para o index com a data original
 
     return render_template("editar.html", tarefa=tarefa)
 
-# TAREFAS PADROES
+
 @main_bp.route("/tarefas_diarias", methods=["GET", "POST"])
 @login_required
 def tarefas_diarias():
-    # Tarefas pré-estabelecidas (agora importadas de app.constants)
-    # tarefas_pre_estabelecidas = [ ... ] # Removida definição duplicada
-
     if request.method == "POST":
-        # Tarefas selecionadas (pré-estabelecidas)
         tarefas_selecionadas = request.form.getlist("tarefas")
-
-        # Nova tarefa personalizada (input de texto)
         nova_tarefa = request.form.get("nova_tarefa", "").strip()
 
-        # Adiciona as tarefas selecionadas (pré-estabelecidas), se ainda não existirem
         for descricao in tarefas_selecionadas:
             adicionar_tarefa(descricao, current_user.grupo_id, current_user.id)
 
-        # Adiciona a nova tarefa personalizada, se não estiver nas pré-estabelecidas nem já no banco
         if nova_tarefa and nova_tarefa not in TAREFAS_PRE_ESTABELECIDAS:
-            # Verifica se a tarefa personalizada já existe no banco antes de adicionar
             existe_personalizada = Tarefa.query.filter_by(
                 descricao=nova_tarefa,
                 grupo_id=current_user.grupo_id,
@@ -219,21 +273,31 @@ def tarefas_diarias():
             if not existe_personalizada:
                 adicionar_tarefa(nova_tarefa, current_user.grupo_id, current_user.id)
 
-        # Commit das mudanças no banco de dados
         db.session.commit()
-        flash("Tarefas adicionadas com sucesso!", "success") # Removido comentário e adicionada categoria
+        flash("Tarefas adicionadas com sucesso!", "success")
         return redirect(url_for("main.tarefas_diarias"))
 
-    return render_template("tarefas_diarias.html", tarefas=TAREFAS_PRE_ESTABELECIDAS) # Usando a constante
+    return render_template("tarefas_diarias.html", tarefas=TAREFAS_PRE_ESTABELECIDAS)
 
 
 @main_bp.route("/imagem/<int:id>", methods=["POST"])
+@login_required
 def enviar_imagem(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
+
+    if tarefa.grupo_id != current_user.grupo_id:
+        flash("Você não tem permissão para adicionar/alterar a imagem desta tarefa.", "danger")
+        abort(403)
+
+    # Impede modificação de tarefas de dias passados
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date()
+
     imagem = request.files.get("imagem")
 
     if imagem and imagem.filename != "":
-        # Se já existe uma imagem antiga, deleta
         if tarefa.imagem:
             caminho_antigo = os.path.join(current_app.config['UPLOAD_FOLDER'], tarefa.imagem)
             if os.path.exists(caminho_antigo):
@@ -243,19 +307,25 @@ def enviar_imagem(id):
         imagem.save(os.path.join(current_app.config['UPLOAD_FOLDER'], nome_imagem))
         tarefa.imagem = nome_imagem
         db.session.commit()
-        flash("Imagem enviada/atualizada com sucesso!", "success") # Adicionada mensagem de sucesso
+        flash("Imagem enviada/atualizada com sucesso!", "success")
 
-    return redirect("/")
+    return redirect_to_index_with_date()
 
 
 @main_bp.route('/remover-imagem/<int:id>', methods=["POST"])
 @login_required
 def remover_imagem(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
 
-    if tarefa.usuario_id != current_user.id:
-        flash("Você não tem permissão para remover a imagem desta tarefa.", "danger") # Adicionada mensagem
-        abort(403)  # Não autorizado
+    if tarefa.grupo_id != current_user.grupo_id:
+        flash("Você não tem permissão para remover a imagem desta tarefa.", "danger")
+        abort(403)
+
+    # Impede modificação de tarefas de dias passados
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date()
 
     if tarefa.imagem:
         caminho_imagem = os.path.join(current_app.config['UPLOAD_FOLDER'], tarefa.imagem)
@@ -263,33 +333,35 @@ def remover_imagem(id):
             os.remove(caminho_imagem)
         tarefa.imagem = None
         db.session.commit()
-        flash("Imagem removida com sucesso!", "success") # Adicionada mensagem de sucesso
+        flash("Imagem removida com sucesso!", "success")
 
-    return redirect(url_for('main.index'))
+    return redirect_to_index_with_date()
 
 
 @main_bp.route("/excluir_tarefa/<int:id>", methods=["POST"])
 @login_required
 def excluir_tarefa(id):
     tarefa = Tarefa.query.get_or_404(id)
+    today_date = datetime.now(timezone.utc).date()
 
-    # Verifica se a tarefa pertence ao grupo do usuário logado
     if tarefa.grupo_id != current_user.grupo_id:
         flash("Você não tem permissão para excluir esta tarefa.", "danger")
-        abort(403) # Não autorizado
+        abort(403)
 
-    # Impede a exclusão se a tarefa não tiver um dono definido (tarefa padrão do grupo)
     if tarefa.usuario_id is None:
-        flash("Essa tarefa padrão não pode ser excluída por aqui.", "warning") # Descomentado e adicionada categoria
-        return redirect(url_for("main.index"))
+        flash("Essa tarefa padrão não pode ser excluída por aqui.", "warning")
+        return redirect_to_index_with_date()
 
-    # Impede se o usuário atual não for o dono da tarefa (mesmo que tenha sido adicionada do tarefas_diarias)
     if tarefa.usuario_id != current_user.id:
         flash("Você não tem permissão para excluir esta tarefa.", "danger")
-        return redirect(url_for("main.index"))
+        return redirect_to_index_with_date()
 
-    # Marca como inativa ao invés de deletar
+    # Impede modificação de tarefas de dias passados
+    if tarefa.data_criacao.date() < today_date:
+        flash("Não é possível modificar tarefas de dias passados.", "warning")
+        return redirect_to_index_with_date()
+
     tarefa.ativa = False
     db.session.commit()
     flash("Tarefa excluída com sucesso.", "success")
-    return redirect(url_for("main.index"))
+    return redirect_to_index_with_date()

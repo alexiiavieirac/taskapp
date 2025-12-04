@@ -1,20 +1,22 @@
+# app/__init__.py
+
 import os
 from flask import Flask
 from dotenv import load_dotenv
-
+from app.controllers import main_bp
 # Importando as funções de inicialização das extensões
 from app.extensions.database import init_db
 from app.extensions.login_manager import init_login_manager
 from app.extensions.mail import init_mail
 from app.extensions.serializer import init_serializer
 from app.extensions.uploads import configure_uploads
-from app.extensions.socketio import socketio
+from app.extensions.socketio import socketio, init_socketio # A sua importação atual
+from app.utils.templates_globals import inject_global_data # <-- Esta linha
 
 # Importando utilitários
 from app.utils.response_utils import setup_response_handlers
 
 # Importando blueprints
-from app.controllers.auth_controller import main_bp
 
 
 def create_app():
@@ -55,19 +57,22 @@ def create_app():
 
     # 3. Inicializar extensões
     init_mail(app)
-
     configure_uploads(app)
     setup_response_handlers(app)
-
-    init_db(app)
-
+    init_db(app) # db é inicializado aqui
     init_login_manager(app)
-
-    socketio.init_app(app)
-
+    init_socketio(app) # socketio é inicializado aqui
     init_serializer(app)
 
     # 4. Registrar blueprints
     app.register_blueprint(main_bp)
+
+    app.context_processor(inject_global_data) # <-- E esta linha
+
+    # --- MOVEMOS ESTA LINHA PARA CÁ ---
+    # Importar os eventos do SocketIO APÓS a inicialização das extensões
+    # Isso garante que 'db' e 'socketio' já estão vinculados ao 'app'
+    from app.controllers import socket_events # Isso registra os eventos
+    # ----------------------------------
 
     return app
