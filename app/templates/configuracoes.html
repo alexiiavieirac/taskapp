@@ -8,13 +8,7 @@
 <body>
     <h1>Configurações da Conta</h1>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <p class="{{ category }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {# REMOVIDO: Bloco que exibia as mensagens flash #}
 
     <form method="POST" enctype="multipart/form-data">
         <div class="upload-container">
